@@ -1,0 +1,232 @@
+.TH BLASTOFF 1 "2026-10-01" "blastoff 0.1.5" "User Commands"
+.SH NAME
+blastoff \- manage Starship themes and stored module configurations
+.SH SYNOPSIS
+.B blastoff
+.RI [ options ] " command " [ arguments ]
+.SH DESCRIPTION
+Bash and PowerShell entry points use one Python 3.11+ core.
+Stored themes are independent of the active Starship configuration.
+Listing never generates presets or writes files.
+Welcome, -h, --help and nested help share a branded header and version.
+Use the supplied 37-column, 13-row Braille logo when it fits, colored with a
+left-to-right purple-to-pink gradient. Narrow, dumb, non-Unicode or redirected
+output uses a compact ASCII fallback.
+NO_COLOR retains fitting artwork uncolored.
+Missing artwork is harmless. No logo scripts or original ANSI files execute.
+Help groups commands by task and colors headings/names, with plain descriptions.
+All options, aliases and subcommand help remain available.
+No discovery, config reads or subprocesses run for welcome/help.
+Auto color requires a terminal; NO_COLOR overrides --color always.
+Color flags work before or after help, including nested help.
+JSON help remains undecorated text; no-command JSON remains a single object.
+No Nerd Font or image assets are required.
+.SH COMMANDS
+.TP
+.B list, -l, --list
+List local themes and built-in presets from starship preset --list.
+Local files remain available if Starship is missing or preset discovery fails.
+Combined listing returns 0 even when empty; unavailable presets warn on stderr.
+JSON listing instead includes preset_discovery with status ok/unavailable and
+error null/reason in its single stdout object, without a stderr warning.
+Successful empty discovery is distinct from unavailable presets.
+Explicit preset requests still fail with status 3 on discovery failure.
+.TP
+.B theme apply NAME, -t NAME, --theme NAME
+Apply a local theme, otherwise a built-in preset.
+Use local:NAME or preset:NAME to select an explicit source.
+Validate TOML and back up the active configuration before atomic replacement.
+.TP
+.B theme save NAME
+Save the active configuration as a local theme.
+.TP
+.B theme copy SOURCE NAME
+Copy a local theme or preset:NAME to a local theme.
+.TP
+.B theme import PATH NAME
+Import a UTF-8 TOML file from an absolute path.
+.TP
+.B theme delete NAME --force
+Back up and delete a stored theme. The active config remains unchanged.
+Refuse deletion when the stored file is the active config path
+or its symlink target.
+.TP
+.B preset list | preset apply NAME | preset save NAME AS
+List, apply or save Starship's built-in presets.
+.TP
+.B module list | module save MODULE [NAME] | module load NAME
+Store or replace an explicit TOML table and its descendants.
+Dotted paths such as custom.clock are supported.
+Loading preserves unrelated configuration values and backs up the old config.
+Root dotted-key and inline-table module layouts may be refused safely.
+.TP
+.B module delete NAME --force
+Back up and delete a stored module snippet.
+Refuse deletion when the stored file is the active config path
+or its symlink target.
+.TP
+.B backup create | backup list | backup restore ID
+Snapshot, list or restore active-config backups.
+Restore verifies the snapshot checksum and backs up the current config.
+Stored-theme backups can be recovered using theme import.
+For stored-module backups, inspect and validate the snapshot before copying it
+to a new module file; theme import does not restore module storage.
+.TP
+.B pick
+Choose and apply using fzf, gum or a numbered terminal menu.
+Cancellation returns 130 and leaves config/storage unchanged.
+Escape or Ctrl-C cancels in fzf/gum. In the line-oriented numbered menu,
+use an empty line, Escape then Enter, EOF or Ctrl-C.
+Ambient FZF_* and GUM_* settings are ignored by picker children.
+Fzf uses an explicit palette, border, source labels and configuration preview.
+Alt-P toggles the preview; narrow screens use a lower pane.
+Short screens initially hide the preview.
+Gum and numbered fallbacks show source labels and instructions without a pane.
+The shipped preview helper shows sanitized, bounded TOML, never a live prompt.
+No theme commands are executed or active config changed by previewing.
+Preset generation uses bounded reads/timeouts and a disposable session cache.
+Only trusted preview/toggle bindings are used; no inherited bindings/listeners.
+Preview results are snapshots; application re-reads and validates the source.
+Failed preset discovery warns on stderr and preserves local choices.
+Empty choices return 1 without opening a picker;
+invalid numbered input returns 2.
+.TP
+.B current
+Show labeled active path, file/link status and all byte-identical local matches.
+Use a purple title and pink labels on capable terminals; no preset guessing.
+Missing config and no local match have distinct messages.
+.TP
+.B doctor
+Show version, Python, paths, config presence and executable availability.
+Use compact labeled human output, not JSON, by default.
+Missing pickers are optional; availability is not tool/config validation.
+Neither status command launches tools or writes state.
+Both honor NO_COLOR and redirection; --json retains the original machine schema.
+Control characters in human path values are escaped.
+.TP
+.B migrate PATH
+Copy valid themes from an absolute legacy directory.
+Refuse collisions. Preserve source files and the active configuration.
+Migration is per-file atomic; an I/O failure can leave a partial copied set.
+.TP
+.B completion bash|zsh|fish
+Print static shell completion code to stdout. Do not edit shell profiles.
+Completion is positional: local source names/prefixes, stored modules, paired
+backup filenames, import paths and migration directories. Destination names and
+module-save routes remain free text.
+No live preset lookup or application launch.
+Backup completion does not validate metadata, kind or checksum.
+.SH OPTIONS
+.TP
+.B --force
+Permit backed-up replacement of a stored file or backed-up deletion.
+.TP
+.B --replace-link
+Replace an active config symlink with a regular file, recording its old link
+and contents in a backup. Never modify the link target.
+.TP
+.B --json
+Write undecorated JSON. Success goes to stdout; errors go to stderr.
+.TP
+.B --color auto|always|never
+Color mode. NO_COLOR suppresses color even with always.
+.TP
+.B --version
+Print the semantic version without invoking Starship.
+.SH ENVIRONMENT
+.TP
+.B STARSHIP_CONFIG
+Absolute active config path. Defaults to ~/.config/starship.toml.
+A nonempty override is honored even when its file does not yet exist.
+.TP
+.B BLASTOFF_HOME
+Absolute storage root. Defaults to ~/.config/blastoff.
+Contains themes, modules and backups.
+.TP
+.B BLASTOFF_PYTHON
+Python executable path or command name. Defaults to python3 in Bash.
+PowerShell also supports the Windows py launcher.
+.TP
+.B NO_COLOR
+Suppress terminal decoration.
+.SH FILES
+~/.config/blastoff/themes/*.toml
+.br
+~/.config/blastoff/modules/*.toml
+.br
+~/.config/blastoff/backups/*.{toml,json}
+.br
+~/.config/starship.toml
+.SH SAFETY
+Refuse non-regular files, unsafe names, symlink destinations and symlink/reparse
+parents on writes. Cooperating writers use directory locks.
+Locks are not automatically broken; inspect stale locks after interruption.
+Files are limited to 4 MiB. Backups are retained until manually removed.
+No network, telemetry or prompt rendering.
+Application commands do not edit shell startup files;
+the public installer may add owned discovery hooks as described below.
+.SH INSTALLATION
+From reviewed sources, use:
+.nf
+bash install.sh --dry-run
+bash install.sh
+bash uninstall.sh --dry-run
+bash uninstall.sh
+.fi
+No action word or --yes is required by these public wrappers.
+Use --prefix PATH for an explicit absolute destination.
+Defaults are native Termux PREFIX, other POSIX ~/.local,
+and Windows LOCALAPPDATA/Programs/Blastoff (fallback ~/.local).
+Source checksums are mandatory even for dry-run; never automatically refreshed.
+Only after reviewing deliberate source changes, run bash scripts/build.sh.
+Plans support --color auto|always|never; NO_COLOR wins.
+Dry-run writes nothing and executes no profiles or shell probes.
+.PP
+Public install prefers native completion and manual discovery directories.
+Zsh receives canonical share/zsh/site-functions/_blastoff plus an owned copy in
+share/zsh/functions/Completion/Unix/_blastoff when the native directory exists;
+Termux's compiled fpath omits site-functions.
+Custom prefixes may require minimal owned PATH/MANPATH/completion hooks.
+Regular profile encoding and unrelated content are preserved.
+Linked profiles/targets are never rewritten; unsafe integration is refused with
+manual setup instructions. Fish uses a conf.d drop-in.
+When pwsh is available, an owned hook imports the absolute versioned manifest.
+Native Windows runtime verification remains pending.
+Profiles are never executed automatically; review activation instructions or
+start a fresh shell. Bash/Zsh may need hash -r/rehash in an existing session.
+.PP
+Runtime payloads under share/blastoff/versions are immutable.
+Repeated install restores missing support or refreshes unmodified supported
+output; automatic downgrades are skipped.
+Public install migrates verified legacy ~/.local ownership
+when the target differs.
+Target commit precedes resumable legacy cleanup; rerun install to finish cleanup
+before uninstalling. Modified owned files, unowned collisions and unsafe paths
+block changes. Never delete ownership manifests or break locks to force updates.
+.PP
+Uninstall removes verified owned files and exact owned profile blocks.
+It retains user data, unrelated profile edits, empty directories and recovery
+backups under the prefix's share/blastoff/profile-backups directory.
+Per-file atomic writes do not provide full multi-file/power-loss transactions.
+.PP
+Compatibility: bash scripts/install.sh install --yes and uninstall --yes remain
+supported, as does native scripts/install.ps1 with the same action/flags.
+Use --dry-run before changes. Fresh legacy installs leave integration manual
+unless already owning it. See docs/INSTALLATION.md for manual activation.
+.SH EXIT STATUS
+0 success; 1 operation failure; 2 usage error;
+3 missing dependency or preset failure;
+130 cancellation or interruption.
+.SH EXAMPLES
+.nf
+blastoff --list
+blastoff theme apply local:purple
+blastoff theme save work
+blastoff preset save catppuccin-powerline catppuccin
+blastoff module save directory compact-directory
+blastoff module load compact-directory
+blastoff backup create
+blastoff backup restore BACKUP-ID
+.fi
+.SH AUTHOR
+njen

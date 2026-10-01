@@ -1,0 +1,116 @@
+# Everyday Termux quickstart
+
+Termux has prior native validation; current installer results belong in STATUS.md.
+Native Windows remains deferred. The user reported a working installation and
+37 migrated themes; the agent has not updated that live installation. Review
+[the update plan](TERMUX-INSTALL-PLAN.md) for 0.1.5: `bash install.sh --dry-run`,
+then `bash install.sh` when wanted. Native Termux defaults to `$PREFIX` and public
+install migrates verified legacy `~/.local` ownership. Native discovery is preferred;
+custom prefixes may need owned profile hooks. Linked profiles are never rewritten.
+Python 3.11+ and Bash are required; Starship is needed only for presets. fzf/gum
+are optional.
+
+## Try the commands without touching your prompt
+
+Run this in Bash or Zsh **after an approved installation**. The parentheses
+isolate environment changes; the directory is retained for inspection. Before
+installation, replace the `bo` function with `bo() { bash bin/blastoff "$@"; }`
+from the repository root.
+
+```sh
+(
+  sandbox=$(mktemp -d "${TMPDIR:-/data/data/com.termux/files/usr/tmp}/blastoff-demo.XXXXXXXX") || exit
+  export STARSHIP_CONFIG="$sandbox/config space/starship.toml"
+  export BLASTOFF_HOME="$sandbox/storage space"
+  export STARSHIP_CACHE="$sandbox/starship-cache"
+  bo() { "$PREFIX/bin/blastoff" "$@"; }
+  mkdir -p "$sandbox/config space"
+  printf '[directory]\nstyle = "purple"\n' > "$STARSHIP_CONFIG"
+
+  bo                                   # branded welcome, no discovery
+  bo --version                         # blastoff 0.1.5
+  bo doctor --json                     # config/storage point inside sandbox
+  bo list                              # local themes + available Starship presets
+  bo theme save daily                  # snapshot current config as daily
+  bo theme copy local:daily spare       # copy stored theme without applying
+  bo theme list                        # daily and spare among local themes
+  bo theme apply local:spare            # identical bytes retained; no backup needed
+  bo current                           # matching local names/config information
+
+  bo module save directory dir-style    # store explicit [directory] table
+  bo module list                       # dir-style
+  bo module load dir-style              # merge table, preserve unrelated settings
+
+  bo backup create                     # prints a backup ID
+  bo backup list                       # inspect IDs; choose the config backup above
+  # Replace ID with that actual ID (not the literal word ID):
+  # bo backup restore ID                # restores backed-up config, backs up replaced config
+
+  # Optional preset: exact name comes from `bo preset list`:
+  # bo preset list
+  # bo preset save plain-text-symbols plain  # stores a preset without applying it
+  # bo theme apply local:plain          # replaces only sandbox config, with backup
+
+  # Optional interactive picker, from a terminal (not a pipe):
+  # bo pick
+  printf 'Inspect retained sandbox: %s\n' "$sandbox"
+)
+```
+
+Expected: mutations stay inside the printed sandbox, and your actual prompt
+configuration remains unchanged. Backup IDs are generated, so copy the actual ID
+from the output. The `plain-text-symbols` example matches Starship 1.26.0;
+check your installed preset list rather than assume all versions have it.
+
+For everyday use after default installation, invoke `"$PREFIX/bin/blastoff"`
+(or your actual custom-prefix command) with the same arguments, **without** sandbox
+overrides. Until migration, a legacy installation may still be under `~/.local`. On this machine
+`STARSHIP_CONFIG` currently selects `~/dots/config/starship/starship.toml`;
+applying/loading/restoring would then change that real file. First run `doctor
+--json`, save a named theme and create a backup. Do not infer the destination
+from the storage directory: `BLASTOFF_HOME` controls storage only.
+
+Existing destination names refuse overwrite unless `--force` is supplied;
+forced replacements are backed up. Use `local:NAME` to avoid preset ambiguity.
+`theme import /absolute/path/to/file.toml NAME` imports without applying it.
+Missing/failing Starship does not hide local themes: combined listing and pick
+warn on stderr and continue with locals (a timeout can take ten seconds).
+`list --json` instead includes `preset_discovery.status` (`ok` or `unavailable`)
+and `preset_discovery.error` in its single stdout object, with no warning on
+stderr. Combined listing exits 0 even when empty; pick exits 1 without opening a
+picker if no choices remain. Explicit preset requests still fail with status 3
+when discovery fails. A successful empty preset list is not a failure.
+Quote paths with spaces. Names are portable ASCII letters/digits, `_` and `-`,
+up to 96 characters; names start with a letter/digit and Windows device names
+are excluded. No custom Starship commands are run by validation.
+
+Fzf now shows a purple/pink selector with local:/preset: labels. Its pane is a
+**configuration preview**, not a rendered Starship prompt: no theme-defined
+commands are run. Alt-P toggles the preview, which moves below the list on narrow
+screens and starts hidden in short terminals. Gum/numbered fallbacks have clear
+labels/instructions but no preview pane. `NO_COLOR` or `--color never` removes
+color; no Nerd Font is needed.
+
+Picker selection applies a theme. Cancellation exits 130 without changing
+config/storage: Escape/Ctrl-C in fzf/gum; blank Enter, Escape then Enter, Ctrl-D
+or Ctrl-C in the numbered fallback. Missing fzf/gum automatically falls back.
+Use `--help` after any subcommand; use `--json` for machine output, not with pick.
+Completion activation and manual commands are in [INSTALLATION.md](INSTALLATION.md).
+
+## Smallest remaining human check
+
+Automated native PTYs have passed; screen appearance and your Android keyboard
+still need human confirmation. From the repository in your ordinary terminal:
+
+```sh
+python3 scripts/interactive_check.py --backend fzf --expect select
+python3 scripts/interactive_check.py --backend fzf --expect cancel
+```
+
+Choose alpha/beta in the first; press Ctrl-C in the second. Expect `PASS`, exit
+0/130 respectively, and `config/storage unchanged=True` for cancellation.
+Report terminal app, width, clipping, and whether cursor/echo return normally.
+Use `--backend numbered` instead if that is your intended everyday backend
+(blank Enter cancels). The complete optional gum/Escape/narrow-width and
+shell-plugin checklist remains in [INTERACTIVE-CHECKS.md](INTERACTIVE-CHECKS.md);
+this small check does not claim those remaining human checks passed.

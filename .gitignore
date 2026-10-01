@@ -19,3 +19,8 @@ Thumbs.db
 .cache/
 .tmp/
 .local/
+
+__pycache__/
+*.py[cod]
+.pi/sessions/
+.pi/tasks/
