@@ -54,6 +54,15 @@ class PowerShellCompletionSourceTests(unittest.TestCase):
         self.assertIn('StringConstantExpressionAst', code)
         self.assertIn('Extent.EndOffset -ge $cursorPosition', code)
 
+    def test_storage_root_aliases_keep_child_and_network_guards(self):
+        self.assertIn("$item.LinkType -notin @('SymbolicLink', 'Junction')", self.completer)
+        self.assertIn('$redirect -ge 40', self.completer)
+        self.assertIn('$targets = @($item.Target)', self.completer)
+        self.assertIn('[IO.Path]::GetFullPath($target,', self.completer)
+        self.assertIn("DriveType -eq 'Network'", self.completer)
+        self.assertIn('Get-Item -LiteralPath $directory', self.completer)
+        self.assertIn('($item.Attributes -band $unsafe)', self.completer)
+
     def test_deduplication_preserves_case_distinct_names(self):
         self.assertIn('Sort-Object -CaseSensitive -Unique', self.completer)
 
@@ -102,6 +111,13 @@ class PowerShellCompletionEngineTests(unittest.TestCase):
                 os.mkfifo(themes / 'pipe.toml')
             (themes / 'directory.toml').mkdir()
             (store / 'modules' / 'snippet.toml').write_text('not TOML')
+            alias = home / 'linked store'
+            if os.name == 'nt':
+                cmd = str(Path(os.environ['SystemRoot'])/'System32/cmd.exe')
+                subprocess.run([cmd, '/d', '/c', 'mklink', '/J', str(alias), str(store)],
+                               capture_output=True, check=True, timeout=10)
+            else:
+                alias.symlink_to(store, target_is_directory=True)
             config = home / 'active.toml'
             config.write_text('unchanged')
             empty_bin = home / 'empty-bin'
@@ -110,6 +126,7 @@ class PowerShellCompletionEngineTests(unittest.TestCase):
                        BLASTOFF_HOME=str(store), STARSHIP_CONFIG=str(config),
                        BLASTOFF_PYTHON=str(empty_bin / 'must-not-run'),
                        BLASTOFF_TEST_CASE_SENSITIVE=str(int(case_sensitive)),
+                       BLASTOFF_TEST_LINKED_STORE=str(alias),
                        PATH=str(empty_bin), XDG_CACHE_HOME=str(home / 'cache'),
                        XDG_CONFIG_HOME=str(home / 'config'))
             manifest = str(ROOT / 'powershell' / 'blastoff.psd1').replace("'", "''")
@@ -160,6 +177,9 @@ foreach ($command in @('blastoff', 'Invoke-Blastoff')) {
 # Re-import must retain completion without touching exit status or launching a runtime.
 Import-Module '__MANIFEST__' -Force
 Check 'blastoff theme apply a' @('alpha') @()
+$env:BLASTOFF_HOME = $env:BLASTOFF_TEST_LINKED_STORE
+Check 'blastoff theme apply a' @('alpha') @('linked', 'pipe')
+Check 'Invoke-Blastoff module load s' @('snippet') @()
 # Default/tilde roots are resolved at completion time; never cached at import.
 $env:BLASTOFF_HOME = ''
 Check 'blastoff theme apply ' @('default-theme', 'local:', 'preset:') @('alpha')
@@ -174,7 +194,7 @@ Check 'blastoff theme apply ' @() @('alpha')
 
             def snapshot():
                 return {str(p): (p.lstat().st_mode, p.lstat().st_size, p.lstat().st_mtime_ns)
-                        for p in [config, store, *store.rglob('*'), defaults, *defaults.rglob('*')]}
+                        for p in [config, alias, store, *store.rglob('*'), defaults, *defaults.rglob('*')]}
 
             before = snapshot()
             encoded = base64.b64encode(script.encode('utf-16-le')).decode('ascii')

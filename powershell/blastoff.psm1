@@ -128,16 +128,29 @@ Register-ArgumentCompleter -Native -CommandName blastoff, Invoke-Blastoff -Scrip
             elseif ($root.StartsWith('~/') -or ($IsWindows -and $root.StartsWith('~\'))) {
                 $root = Join-Path $HOME $root.Substring(2)
             }
-            # Refuse relative/provider paths and UNC shares rather than probing
-            # a remote location during Tab. BLASTOFF_HOME never changes config.
-            if (-not [IO.Path]::IsPathFullyQualified($root) -or $root -match '^[\\/]{2}') { return }
-            if ($IsWindows -and ([IO.DriveInfo]::new([IO.Path]::GetPathRoot($root))).DriveType -eq 'Network') { return }
+            # Follow only storage-root aliases; child/file links stay excluded.
+            # Inspect each target before following it: Tab must not probe UNC or
+            # mapped network drives. Target/LinkType also work on PowerShell 7.0.
+            for ($redirect = 0; ; $redirect++) {
+                if (-not [IO.Path]::IsPathFullyQualified($root) -or $root -match '^[\\/]{2}') { return }
+                if ($IsWindows -and ([IO.DriveInfo]::new([IO.Path]::GetPathRoot($root))).DriveType -eq 'Network') { return }
+                $item = Get-Item -LiteralPath $root -Force -ErrorAction Stop
+                if (-not $item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::Device)) { return }
+                if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) { break }
+                if ($redirect -ge 40 -or $item.LinkType -notin @('SymbolicLink', 'Junction')) { return }
+                $targets = @($item.Target)
+                if ($targets.Count -ne 1 -or -not $targets[0]) { return }
+                $target = [string]$targets[0]
+                if ($IsWindows -and ($target.StartsWith('\??\') -or $target.StartsWith('\\?\'))) {
+                    $target = $target.Substring(4)
+                    if ($target.StartsWith('UNC\', [StringComparison]::OrdinalIgnoreCase)) { return }
+                }
+                $root = [IO.Path]::GetFullPath($target, [IO.Path]::GetDirectoryName($item.FullName))
+            }
             $directory = Join-Path $root $kind
             $unsafe = [IO.FileAttributes]::ReparsePoint -bor [IO.FileAttributes]::Device
-            foreach ($path in @($root, $directory)) {
-                $item = Get-Item -LiteralPath $path -Force -ErrorAction Stop
-                if (-not $item.PSIsContainer -or ($item.Attributes -band $unsafe)) { return }
-            }
+            $item = Get-Item -LiteralPath $directory -Force -ErrorAction Stop
+            if (-not $item.PSIsContainer -or ($item.Attributes -band $unsafe)) { return }
             foreach ($file in Get-ChildItem -LiteralPath $directory -File -Force -Filter '*.toml' -ErrorAction Stop) {
                 if ($file.Attributes -band $unsafe) { continue }
                 # Fail closed on Unix hosts lacking file-type metadata rather

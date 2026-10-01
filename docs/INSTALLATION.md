@@ -32,7 +32,7 @@ writes, shell probes or executing profiles. Installing also never executes
 profiles automatically; start a fresh shell or review the printed activation
 commands for your current session. Bash may need `hash -r`, Zsh `rehash`.
 
-The payload is `<prefix>/share/blastoff/versions/0.1.5`. On POSIX the launcher
+The payload is `<prefix>/share/blastoff/versions/0.1.6`. On POSIX the launcher
 uses the discovered absolute Bash path, avoiding Termux's absent `/usr/bin/env`.
 `BLASTOFF_PYTHON` selects an interpreter executable, not a command with flags.
 Fresh native Windows installs omit the POSIX launcher even if Git Bash exists.
@@ -102,7 +102,7 @@ If the source is unavailable, use the installed public wrapper, for example on
 Termux with the default prefix:
 
 ```sh
-bash "$PREFIX/share/blastoff/versions/0.1.5/uninstall.sh" --prefix "$PREFIX" --dry-run
+bash "$PREFIX/share/blastoff/versions/0.1.6/uninstall.sh" --prefix "$PREFIX" --dry-run
 # Remove --dry-run only when removal is wanted.
 ```
 
@@ -152,7 +152,7 @@ Native PowerShell 7+ (no Bash/WSL needed):
 ```
 
 For manual activation, substitute your actual absolute prefix below. PowerShell
-can import `<prefix>/share/blastoff/versions/0.1.5/powershell/blastoff.psd1`
+can import `<prefix>/share/blastoff/versions/0.1.6/powershell/blastoff.psd1`
 explicitly. Bash can source `<prefix>/share/bash-completion/completions/blastoff`;
 Fish can source `<prefix>/share/fish/vendor_completions.d/blastoff.fish`.
 For Zsh, add `<prefix>/share/zsh/site-functions` to `fpath` before your existing

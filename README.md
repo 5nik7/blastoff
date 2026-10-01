@@ -1,7 +1,7 @@
 # blastoff
 
 A Starship theme switcher and module library with the same behavior from Bash
-and native PowerShell. This is a **0.1.5 review build** for integration with pi.
+and native PowerShell. This is a **0.1.6 review build** for integration with pi.
 See `docs/STATUS.md` before treating it as a production release.
 
 Fast, safe operation comes first. Human output uses purple/magenta accents;
@@ -27,6 +27,11 @@ Start with `docs/PI-SETUP.md` for pi, `AGENTS.md` for agent rules and
 
 `BLASTOFF_HOME` overrides the storage root only. Put a valid `example.toml` in the
 themes directory and it appears on the next `--list`; there is no registry to edit.
+The storage root may be a directory link, such as
+`~/.config/blastoff -> ~/dots/config/blastoff`: Blastoff uses its existing target
+and leaves the link intact. `doctor` reports the real storage path. Links beneath
+storage and active-config write protections remain unchanged. See the
+[dotfiles notes](docs/TERMUX-QUICKSTART.md#linked-dotfiles-storage) for limits.
 
 ## Install
 

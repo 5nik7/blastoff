@@ -216,7 +216,13 @@ class PublicInstaller(unittest.TestCase):
             self.assertIn(self.version.encode(), result.stdout)
             self.assertIn(b'apply', result.stdout)
         if (self.toolbin/'man').exists():
-            result = self.run_command([BASH, '--noprofile', '-ic', 'man -w blastoff'])
+            # First verify the managed search list. Then omit its trailing
+            # default-path expansion for this isolated lookup: mandoc can prefer
+            # an ambient indexed page over an unindexed temporary-prefix page.
+            result = self.run_command([BASH, '--noprofile', '-ic',
+                                      'printf "%s\\n" "$MANPATH"; MANPATH="${MANPATH%:}" man -w blastoff'])
+            self.assertEqual(result.stdout.splitlines()[0],
+                             (str(self.prefix/'share/man') + ':').encode())
             self.assertIn(str(self.prefix/'share/man/man1/blastoff.1').encode(), result.stdout)
 
     def test_repeat_is_idempotent_and_missing_support_is_recreated(self):

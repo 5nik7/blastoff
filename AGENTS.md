@@ -33,6 +33,8 @@ Never assume it represents main or copy it over existing work blindly.
   `~/.config/starship.toml`, even if the override does not exist yet.
 - Store themes in `~/.config/blastoff/themes` and modules in
   `~/.config/blastoff/modules`; `BLASTOFF_HOME` overrides only the storage root.
+- Resolve storage-root directory links once; aliases share the canonical lock.
+  Keep linked storage children and active-config parent write protections strict.
 - Help, version, list, doctor and completions must not create files/directories.
 - Validate UTF-8 TOML before a mutation. Keep unrelated module settings intact.
 - Back up replaced/deleted content. Stage in the destination directory and

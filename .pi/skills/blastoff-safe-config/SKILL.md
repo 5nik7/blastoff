@@ -8,7 +8,11 @@ Read `../../../AGENTS.md` and `../../../docs/CLI-CONTRACT.md`.
 Resolve storage and active-config paths separately. Honor nonempty overrides
 when destinations are absent. Use the shared Python core for all mutations.
 
-Validate names and regular files, including symlink/reparse parents and FIFOs.
+Resolve the configured storage root to its existing directory-link target before
+building child paths; do not resolve storage children or the active-config leaf.
+Validate names and regular files, including remaining symlink/reparse parents and
+FIFOs. Root aliases share the canonical operation lock; linked children remain
+unsafe write destinations.
 Parse TOML; do not use regex-only edits or execute theme commands for validation.
 For a module, preserve unrelated values and text; replace the selected table
 and descendants only. Refuse unsupported layouts before changing user files.

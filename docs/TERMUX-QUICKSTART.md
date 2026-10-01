@@ -3,12 +3,36 @@
 Termux has prior native validation; current installer results belong in STATUS.md.
 Native Windows remains deferred. The user reported a working installation and
 37 migrated themes; the agent has not updated that live installation. Review
-[the update plan](TERMUX-INSTALL-PLAN.md) for 0.1.5: `bash install.sh --dry-run`,
+[the update plan](TERMUX-INSTALL-PLAN.md) for 0.1.6: `bash install.sh --dry-run`,
 then `bash install.sh` when wanted. Native Termux defaults to `$PREFIX` and public
 install migrates verified legacy `~/.local` ownership. Native discovery is preferred;
 custom prefixes may need owned profile hooks. Linked profiles are never rewritten.
 Python 3.11+ and Bash are required; Starship is needed only for presets. fzf/gum
 are optional.
+
+## Linked dotfiles storage
+
+Starting with 0.1.6, an existing link such as
+`~/.config/blastoff -> ~/dots/config/blastoff` works without an override.
+The target must already be a directory. Blastoff leaves the link intact and
+stores themes, modules, backups and its operation lock in that target.
+`blastoff doctor --json` reports the real storage path.
+
+Only the storage-root path and its ancestors may redirect writes. Do not link
+`themes`, `modules`, `backups` or individual stored files separately. Broken
+root links fail without creating their targets. Active config protections are
+unchanged: if `.config` itself is linked, use a real-path `STARSHIP_CONFIG`;
+`--replace-link` applies only to the active config file, not storage.
+
+For an older installed build, this temporary override avoids the root link:
+
+```sh
+BLASTOFF_HOME="$HOME/dots/config/blastoff" blastoff doctor --json
+```
+
+Use the same prefix with your intended command until you explicitly upgrade.
+This does not move storage or edit shell profiles. Source changes alone do not
+update an installed command; review `bash install.sh --dry-run` before installing.
 
 ## Try the commands without touching your prompt
 
@@ -28,7 +52,7 @@ from the repository root.
   printf '[directory]\nstyle = "purple"\n' > "$STARSHIP_CONFIG"
 
   bo                                   # branded welcome, no discovery
-  bo --version                         # blastoff 0.1.5
+  bo --version                         # blastoff 0.1.6
   bo doctor --json                     # config/storage point inside sandbox
   bo list                              # local themes + available Starship presets
   bo theme save daily                  # snapshot current config as daily

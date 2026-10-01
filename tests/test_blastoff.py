@@ -116,12 +116,18 @@ class Contract(Harness):
         os.mkfifo(self.store/'pipe.toml')
         self.invoke('theme','import',str(self.store/'pipe.toml'),'bad', code=1)
     @unittest.skipIf(os.name=='nt', 'symlink privilege not guaranteed on Windows')
-    def test_parent_redirection_refused(self):
+    def test_storage_root_link_preserved(self):
         destination = self.home/'outside'; destination.mkdir()
         self.store.symlink_to(destination, target_is_directory=True)
         self.write(self.config, '[directory]\nstyle="red"\n')
-        self.invoke('theme','save','bad', code=1)
-        self.assertEqual(list(destination.iterdir()), [])
+        self.invoke('theme','save','linked')
+        self.assertEqual((destination/'themes/linked.toml').read_bytes(), self.config.read_bytes())
+        self.write(self.config, '[directory]\nstyle="old"\n')
+        self.invoke('theme','apply','linked')
+        self.assertEqual(self.config.read_bytes(), (destination/'themes/linked.toml').read_bytes())
+        self.assertIn('old', self.snapshots()[0].read_text())
+        self.assertTrue(self.store.is_symlink())
+        self.assertEqual(self.store.resolve(), destination)
     @unittest.skipIf(os.name=='nt', 'symlink privilege not guaranteed on Windows')
     def test_delete_refuses_symlinked_storage_children(self):
         self.store.mkdir()

@@ -99,7 +99,7 @@ function __blastoff_candidates
                 set mode file
         end
     end
-    if test -n "$kind"; and not test -L "$root"; and not test -L "$root/$kind"
+    if test -n "$kind"; and test -d "$root"; and not test -L "$root/$kind"
         for file in "$root/$kind/"*.toml
             test -f "$file"; and not test -L "$file"; or continue
             set -l base (string replace -r '^.*/([^/]+)\.toml$' '$1' -- "$file")

@@ -78,6 +78,13 @@ class InstalledPackage(unittest.TestCase):
             self.assertEqual(doctor['blastoff_home'], str(store))
             self.assertFalse(config.exists())
             self.assertFalse(store.exists())
+            # Exercise the installed runtime with the dotfiles storage layout.
+            real_store = home/'dots/config/blastoff'
+            real_store.mkdir(parents=True)
+            store.symlink_to(real_store, target_is_directory=True)
+            linked_doctor = json.loads(run([command, 'doctor', '--json']))
+            self.assertEqual(linked_doctor['blastoff_home'], str(real_store))
+            self.assertEqual(list(real_store.iterdir()), [])
             config.parent.mkdir(parents=True)
             original = b'[directory]\nstyle="purple"\n'
             config.write_bytes(original)
@@ -154,6 +161,8 @@ class InstalledPackage(unittest.TestCase):
             self.assertTrue(all(not Path(p).exists() for p in owned))
             self.assertEqual(sentinel.read_bytes(), b'keep me')
             self.assertEqual(snapshot(), before)
+            self.assertTrue(store.is_symlink())
+            self.assertEqual(store.resolve(), real_store)
 
 
 if __name__ == '__main__':

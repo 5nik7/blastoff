@@ -40,6 +40,16 @@ automatic migration.
 6. Update `docs/STATUS.md` with exact commands, versions and observations.
 7. Fix real findings in bounded changes. Do not merely mark unchecked items done.
 
+## 0.1.6 linked-storage slice
+
+Support configured storage-root symlinks/junctions by pinning their canonical
+existing target; allow ordinary missing non-linked paths without read-only writes.
+Keep child-directory, leaf-file, active-config and lifecycle guards strict.
+Verify alias lock contention, recovery, retargeting, broken/looping links and
+offline completion in isolated roots. Record native Termux evidence in STATUS.md;
+Windows junction/PowerShell execution remains a separate gate. Versioned upgrade
+rehearsals use temporary prefixes, never the live installation.
+
 ## 0.1.4 lifecycle acceptance focus
 
 Public install/uninstall need no action word or `--yes`; legacy entry points remain

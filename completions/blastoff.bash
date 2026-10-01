@@ -75,7 +75,7 @@ _blastoff() {
             theme:import) mode=file ;;
         esac
     fi
-    if [[ -n $kind && ! -L $root && ! -L $root/$kind ]]; then
+    if [[ -n $kind && -d $root && ! -L $root/$kind ]]; then
         for file in "$root/$kind/"*.toml; do
             [[ -f $file && ! -L $file ]] || continue
             base=${file##*/}; base=${base%.toml}; upper=${base^^}

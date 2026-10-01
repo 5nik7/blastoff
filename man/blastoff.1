@@ -1,4 +1,4 @@
-.TH BLASTOFF 1 "2026-10-01" "blastoff 0.1.5" "User Commands"
+.TH BLASTOFF 1 "2026-10-01" "blastoff 0.1.6" "User Commands"
 .SH NAME
 blastoff \- manage Starship themes and stored module configurations
 .SH SYNOPSIS
@@ -158,8 +158,19 @@ Suppress terminal decoration.
 .br
 ~/.config/starship.toml
 .SH SAFETY
-Refuse non-regular files, unsafe names, symlink destinations and symlink/reparse
-parents on writes. Cooperating writers use directory locks.
+The storage root may be a directory symlink or Windows junction.
+For example, ~/.config/blastoff may link to ~/dots/config/blastoff.
+Resolve that root once, including relative links and linked ancestors;
+all link targets must be existing directories (at most 40 redirects).
+Leave the link intact; report canonical storage paths in doctor and results.
+Ordinary missing storage directories are created only by mutations.
+.PP
+Refuse non-regular files, unsafe names, linked storage children and leaf files,
+and symlink/reparse parents for active-config writes.
+A linked .config directory does not authorize config writes through it;
+use a real-path STARSHIP_CONFIG override instead.
+Installer/profile protections and active-file --replace-link are unchanged.
+Cooperating writers through storage aliases share the canonical directory lock.
 Locks are not automatically broken; inspect stale locks after interruption.
 Files are limited to 4 MiB. Backups are retained until manually removed.
 No network, telemetry or prompt rendering.

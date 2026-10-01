@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.6 — linked dotfiles storage
+
+- Allow the storage root and its ancestors to be directory links, including
+  Windows symlinks/junctions, without changing the link or moving existing data.
+  Resolve storage once; canonical aliases share the operation lock.
+- Refuse dangling/looping/non-directory targets and unsupported reparse types.
+  Retain linked-child, stored-file, active-config and installer/profile guards.
+- Report canonical storage paths without changing JSON schemas; support root
+  links in offline Bash/Zsh/Fish and PowerShell name completion.
+- Add isolated mutation/recovery/locking/redirect/completion regressions and
+  Windows-path fixtures. Native Windows/PowerShell verification remains pending.
+- Bump the immutable runtime identity; no automatic live upgrade or migration.
+
 ## 0.1.5 — gradient header and readable status
 
 - Use `lib/artwork/logo` unchanged as the shared welcome/root/nested-help artwork.

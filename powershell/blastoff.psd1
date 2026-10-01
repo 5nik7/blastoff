@@ -1,6 +1,6 @@
 @{
     RootModule = 'blastoff.psm1'
-    ModuleVersion = '0.1.5'
+    ModuleVersion = '0.1.6'
     GUID = '5408e4a1-63cf-4c10-934a-9fc07b5ac874'
     Author = 'njen'
     CompanyName = 'njen.io'

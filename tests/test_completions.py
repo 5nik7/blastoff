@@ -186,6 +186,28 @@ class CompletionTests(unittest.TestCase):
                 got = self.complete(shell, ['theme', 'apply', ''])
                 self.assertEqual({x for x in got if not x.startswith('-')}, valid | {'local:', 'preset:'})
 
+    def test_linked_storage_root(self):
+        alias = self.home / 'linked store'
+        alias.symlink_to(self.store, target_is_directory=True)
+        self.env['BLASTOFF_HOME'] = str(alias)
+        for shell in SHELLS:
+            for args, expected in [(['theme', 'apply', ''], 'alpha'),
+                                   (['module', 'load', ''], 'snippet'),
+                                   (['backup', 'restore', ''], '20260930T120000Z-abcdef')]:
+                with self.subTest(shell=shell, args=args):
+                    self.assertIn(expected, self.complete(shell, args))
+        self.assertTrue(alias.is_symlink())
+        for kind, args, excluded in [('themes', ['theme', 'apply', ''], 'alpha'),
+                                     ('modules', ['module', 'load', ''], 'snippet'),
+                                     ('backups', ['backup', 'restore', ''], '20260930T120000Z-abcdef')]:
+            child = self.store / kind
+            target = self.home / ('outside-' + kind)
+            child.rename(target)
+            child.symlink_to(target, target_is_directory=True)
+            for shell in SHELLS:
+                with self.subTest(shell=shell, child=kind):
+                    self.assertNotIn(excluded, self.complete(shell, args))
+
     def test_empty_store(self):
         self.env['BLASTOFF_HOME'] = str(self.home / 'missing')
         for shell in SHELLS:
@@ -226,7 +248,7 @@ class CompletionTests(unittest.TestCase):
         self.env['BLASTOFF_HOME'] = str(link)
         for shell in SHELLS:
             with self.subTest(shell=shell, root='symlink'):
-                self.assertEqual(self.complete(shell, ['theme', 'apply', '']), {'local:', 'preset:'})
+                self.assertIn('alpha', self.complete(shell, ['theme', 'apply', '']))
         empty = self.home / 'empty-store' / 'modules'
         empty.mkdir(parents=True)
         self.env['BLASTOFF_HOME'] = str(empty.parent)

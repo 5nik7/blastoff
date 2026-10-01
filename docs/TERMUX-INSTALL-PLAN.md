@@ -1,6 +1,6 @@
 # Termux installation / source update plan
 
-The 0.1.5 Battery-style installer is implemented; this plan is not evidence of a
+The 0.1.6 Battery-style installer is implemented; this plan is not evidence of a
 live installation or passing tests. The user previously reported a working
 installation, 37 migrated themes and 12 presets. Do not assume historical path
 observations still describe the live system. Native Windows remains deferred.
@@ -40,7 +40,7 @@ man blastoff
 ```
 
 Use the same explicit `--prefix /absolute/path` for review and installation if
-choosing a custom location. Expected source version: 0.1.5. Config, migrated
+choosing a custom location. Expected source version: 0.1.6. Config, migrated
 themes, modules and application backups remain untouched; applying a theme is a
 separate action. Try the sandbox in [TERMUX-QUICKSTART.md](TERMUX-QUICKSTART.md).
 
@@ -77,7 +77,7 @@ bash uninstall.sh
 If the source is gone, the default Termux installed wrapper is:
 
 ```sh
-bash "$PREFIX/share/blastoff/versions/0.1.5/uninstall.sh" --prefix "$PREFIX" --dry-run
+bash "$PREFIX/share/blastoff/versions/0.1.6/uninstall.sh" --prefix "$PREFIX" --dry-run
 ```
 
 Only verified owned files and exact owned profile blocks are removed. User data,

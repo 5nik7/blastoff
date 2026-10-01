@@ -1,4 +1,4 @@
-# Blastoff command contract — 0.1.5 review build
+# Blastoff command contract — 0.1.6 review build
 
 ## Paths
 
@@ -13,9 +13,27 @@
 Configured/import/migration paths must be absolute; leading `~` expands to home.
 The user specifically requested `~/.config`; this build does not reinterpret
 `XDG_CONFIG_HOME` or the Windows AppData directory. `STARSHIP_THEMES` and the old
-`~/dots/config/starship` path are not implicitly adopted. Writes through symlink
-or Windows reparse parent directories are refused. A dotfile setup with a linked
-`.config` directory must use explicit real paths via the environment overrides.
+`~/dots/config/starship` path are not implicitly adopted. The storage root may be
+linked, for example `~/.config/blastoff -> ~/dots/config/blastoff`, with no flag or
+environment override required. Relative targets, link chains and linked ancestors
+of the storage root are supported. Windows directory symlinks and junctions use
+the same policy; other reparse types are refused. Each link must resolve to an
+existing directory. Broken links, loops, inaccessible/non-directory targets fail
+with exit 1; ordinary missing, non-linked directories are created only by mutations.
+
+The root is resolved once per invocation. Themes, modules, backups and the storage
+lock use that canonical path; aliases share a lock. Retargeting an alias after
+resolution does not redirect that invocation. Storage paths in doctor, mutation
+results and new stored-file backup metadata use the canonical target; JSON keys
+are unchanged and old backup metadata remains readable. Neither links nor existing
+data are moved or converted. More than 40 directory-link redirects are refused.
+
+This is a root-only exception: write destinations beneath storage still refuse
+linked `themes`, `modules`, `backups`, lock paths and stored files. Existing
+read-only child discovery is unchanged. Active config and installer/profile writes
+still refuse symlink/reparse parents. A linked `.config` directory can locate
+storage but requires a real-path `STARSHIP_CONFIG` for active writes. The separate
+active-file `--replace-link` contract below is unchanged.
 
 ## Installer contract
 
@@ -106,6 +124,7 @@ module load or restore. An identical regular-file apply is a no-op.
 
 Deleting a stored theme/module refuses a pathname that resolves to the active
 config, including a regular config stored inside the theme/module directory.
+The guard compares file identity, including namespace aliases and hard links.
 Select a separate active config path first; `--force` cannot bypass this guard.
 Backup metadata must be a JSON object; malformed metadata yields a clean error,
 not a traceback, and restore does not modify the active config.
@@ -268,6 +287,10 @@ the root; help flags remain available in subcommands.
 | Migrate first operand | Directory paths |
 | Destination names; module-save route | Free text, no misleading existing-name suggestions; module routes are not parsed from TOML |
 
+Completions can discover names through a linked storage root, without executing
+the core; linked child directories and leaf files remain excluded. PowerShell
+resolves root link targets with a bounded loop and retains its UNC/network-drive
+refusal. Native Windows completion/junction execution remains a separate gate.
 Local name candidates exclude symlinks/nonregular files, names outside the
 ASCII/96-character rule and reserved Windows device names. File-path completion
 is navigation, not validation: execution still checks regular files, absolute

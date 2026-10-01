@@ -2,7 +2,7 @@
 
 ## Implemented
 
-0.1.5 review build with one Python 3.11+ standard-library core, Bash entry point
+0.1.6 review build with one Python 3.11+ standard-library core, Bash entry point
 and PowerShell 7+ module. Includes requested storage/config paths, read-only
 local/preset listing, theme apply/save/copy/import/delete, backups/restore, module
 save/load/delete, explicit legacy copying, optional picker, JSON/color, static
@@ -16,6 +16,79 @@ working tree is now audited; see `TERMUX-AUDIT.md` for renamed references and
 missing package images. Existing `.local/src` and `.local/logo` files were left
 untouched. No live config, real-prefix installation, shell profile or PATH was
 changed. No commit, push, tag or publication was performed.
+
+## Linked dotfiles storage — 0.1.6
+
+Storage-root links now resolve once to a canonical directory before deriving
+storage children or locks. Relative/chained links and linked ancestors work;
+links must target existing directories. Ordinary missing storage paths remain
+non-mutating until a write. Unknown Windows reparse types, broken links, loops
+and non-directory targets fail. Linked storage children/leaf files and active
+config/installer/profile protections remain unchanged. Root aliases share locks;
+retargeting an alias does not redirect an already-resolved invocation.
+
+Doctor/results/new stored-backup metadata use canonical storage paths with
+unchanged JSON keys. Offline shell completion accepts root links while retaining
+child/file exclusions. PowerShell checks bounded root aliases and retains remote
+root exclusions. No dependency or wrapper argument/exit contract changed.
+
+The original root-refusal regression failed before the fix with the user's exact
+error. Initial focused evidence: 12 storage tests passed; all 37 core/lifecycle
+tests passed after reviewed checksum rebuilding. The new native Bash/Zsh/Fish
+completion test initially exposed their separate root-link exclusions; after
+correction it passed all nine shell/context cases. Seven PowerShell checks ran:
+six static checks passed, engine execution skipped because pwsh is unavailable.
+Review also found strict resolution skipped Windows root-only targets; a fixture
+now covers both accepted link tags and existing/missing extended drive/UNC roots.
+These are path-grammar fixtures, not native Windows evidence. A native Windows
+junction mutation/lock test is included but cannot run on this host.
+
+A first full run had 170 tests: 166 passed, 3 skipped, and one host-dependent
+manual lookup failure. Investigation showed the managed MANPATH was correct,
+but native mandoc preferred the already-installed indexed page over the temporary
+unindexed page when its default search path was included. The fixture now asserts
+the exact exported MANPATH and removes only its trailing default expansion for
+the isolated lookup; that focused rerun passed. Installer behavior is unchanged.
+Bare mandoc priority with multiple installations remains a host limitation; use
+`MANPATH=/absolute/prefix/share/man man blastoff` to select a custom prefix.
+
+Deletion now compares file identity, not resolved path spelling, to protect an
+active config reached through Windows extended-path/junction aliases (and hard
+links). An isolated simulated-spelling regression failed before this correction
+and passed afterward; the native Windows fixture also checks this protection.
+
+Final native Termux evidence (Android 15 aarch64, Python 3.14.6):
+
+- Fresh temporary 0.1.6 ZIP plus `BLASTOFF_TEST_ARCHIVE="$temporary/blastoff-rebuild-0.1.6.zip"
+  python3 -B -m unittest discover -s tests -v`: **171 tests in 113.021 s,
+  168 passed, 3 skipped**. Skips: opt-in real Starship, unavailable PowerShell
+  engine, and native Windows junction fixture. Installed-package upgrade,
+  source-independent linked-storage operations/completions and uninstall data/link
+  retention passed. No native Windows claim is made.
+- `bash -n bin/blastoff scripts/install.sh completions/blastoff.bash install.sh
+  uninstall.sh`, `zsh -n completions/blastoff.zsh`, `fish -n
+  completions/blastoff.fish`, `mandoc -Tlint man/blastoff.1` and `git diff --check`
+  passed. Groff is unavailable; mandoc supplies native manual checks.
+- Configured Ruff diagnostics report warnings, not errors (including a nested
+  test context-manager style warning). The optional ty server is unavailable;
+  install it or update its command in `pi-lsp.json` before claiming type coverage.
+- Read-only `bash bin/blastoff doctor --json` reported 0.1.6 and the user's real
+  storage root `/data/data/com.termux/files/home/dots/config/blastoff`.
+- `python3 -B scripts/benchmark.py`: 60 samples plus 5 warmups per command,
+  isolated empty roots, redirected output, NO_COLOR. Full host/results are in
+  `startup-termux-storage-links.json`. Python p50/p95 milliseconds: version
+  79.720/84.185, help 187.244/218.978, current 214.052/243.330, module-list
+  216.035/259.491. Bash: version 94.801/109.623, help 201.286/271.412, current
+  229.075/270.129, module-list 231.259/269.812. PowerShell unavailable. These are
+  host measurements, not an idle before/after speedup claim.
+
+Release verification: all **109 source files** and both extracted 0.1.6 archives
+passed `scripts/verify.py`; outer SHA-256 sums matched. ZIP, tar.gz and sums
+reproduced byte-for-byte in a second output directory. Isolated public
+install/uninstall dry-runs passed without creating a prefix or HOME state.
+Artifacts are `../blastoff-rebuild-0.1.6.{zip,tar.gz,SHA256SUMS}`; final checkpoint
+edits are rebuilt and reverified with the same checks. No live installation,
+config/storage/profile edit, commit or publication is part of this change.
 
 ## Supplied gradient header and readable status — 0.1.5
 

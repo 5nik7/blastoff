@@ -59,7 +59,7 @@ _blastoff() {
             theme:import) _files; return ;;
         esac
     fi
-    if [[ -n $kind && ! -L $root && ! -L $root/$kind ]]; then
+    if [[ -n $kind && -d $root && ! -L $root/$kind ]]; then
         files=("$root/$kind/"*.toml(N))
         for file in "${files[@]}"; do
             [[ -f $file && ! -L $file ]] || continue

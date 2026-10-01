@@ -4,7 +4,7 @@ from __future__ import annotations
 import sys
 # Shipped UI helpers must not create bytecode during read-only commands.
 sys.dont_write_bytecode = True
-VERSION = '0.1.5'
+VERSION = '0.1.6'
 
 def ui_module(module):
     # Resolve shipped siblings even when Python runs in isolated (-I) mode.
@@ -112,8 +112,59 @@ def parsed(data):
     except (ValueError, UnicodeError) as e:
         raise Failure('Invalid UTF-8 TOML: ' + str(e))
 
+def storage_root(p):
+    """Pin storage aliases, never child paths or the active-config pathname.
+
+    Missing ordinary directories are allowed, but every link must resolve to an
+    existing directory. Walking components preserves that distinction and rejects
+    unsupported Windows reparse points rather than silently normalizing them.
+    """
+    redirects = 0
+
+    def resolve(directory, strict=False):
+        nonlocal redirects
+        current = Path(directory.anchor)
+        # A Windows junction can target just a drive/UNC root. There may be no
+        # components below the anchor, but that target must still exist.
+        if strict and not stat.S_ISDIR(current.lstat().st_mode):
+            raise Failure('Not a storage directory link target: ' + str(current))
+        for part in directory.parts[1:]:
+            if part == '..':
+                current = current.parent
+                continue
+            candidate = current / part
+            try:
+                info = candidate.lstat()
+            except FileNotFoundError:
+                if strict:
+                    raise Failure('Storage directory link target does not exist: ' + str(candidate))
+                current = candidate
+                continue
+            reparse = getattr(info, 'st_file_attributes', 0) & 0x400
+            if stat.S_ISLNK(info.st_mode) or reparse:
+                if reparse and getattr(info, 'st_reparse_tag', None) not in (
+                    0xA000000C, 0xA0000003,  # symlink / mount-point (junction)
+                ):
+                    raise Failure('Unsupported storage directory reparse point: ' + str(candidate))
+                redirects += 1
+                if redirects > 40:
+                    raise Failure('Storage directory link loop or too many links: ' + str(p))
+                target = Path(os.readlink(candidate))
+                if not target.is_absolute():
+                    target = current / target
+                current = resolve(target, strict=True)
+            elif not stat.S_ISDIR(info.st_mode):
+                raise Failure('Not a storage directory: ' + str(candidate))
+            else:
+                current = candidate
+        return current
+
+    return resolve(p)
+
+
 def safe_parents(p):
-    # Explicitly reject redirection through symlink/reparse parents for writes.
+    # Storage-root aliases are resolved separately; all remaining parents must
+    # still be real directories, including children inside the storage root.
     for parent in [p, *p.parents]:
         if exists(parent):
             s = parent.lstat()
@@ -305,7 +356,7 @@ def merge_module(active, snippet):
 class App:
     def __init__(self, args):
         self.args = args
-        self.root = path(os.environ.get('BLASTOFF_HOME') or str(Path.home() / '.config/blastoff'))
+        self.root = storage_root(path(os.environ.get('BLASTOFF_HOME') or str(Path.home() / '.config/blastoff')))
         self.themes = self.root / 'themes'
         self.modules = self.root / 'modules'
         self.backups = self.root / 'backups'
@@ -531,10 +582,10 @@ def run(argv):
     args = cli_module().parse(argv, VERSION)
     if args.command is None:
         ui_module('welcome').render(VERSION, args.color, args.json); return 0
-    app = App(args)
     cmd = args.command
     if cmd == 'completion':
         print((Path(__file__).resolve().parent.parent / 'completions' / ('blastoff.' + args.shell)).read_text(), end=''); return 0
+    app = App(args)
     if cmd == 'doctor':
         app.doctor(); return 0
     if cmd == 'list' or (cmd == 'theme' and args.action == 'list'):
@@ -609,7 +660,13 @@ def run(argv):
                 before = fingerprint(target)
                 if target.is_symlink():
                     raise Failure('Refusing symlink destination')
-                if app.config.resolve() == target.resolve():
+                # Compare file identity, not path spelling: Windows junction
+                # targets may use an extended-length namespace (\\\\?\\).
+                try:
+                    active_file = app.config.samefile(target)
+                except FileNotFoundError:
+                    active_file = False
+                if active_file:
                     raise Failure('This stored file is the active config or its symlink target; select a separate active config path before deleting it.')
                 backup = app.backup(target, 'stored')
                 if fingerprint(target) != before:
