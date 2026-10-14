@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # Share this boundary with package.py: never scan arbitrary checkout files,
 # credentials or live agent logs into a distributable archive.
 SOURCE_PATHS = ('AGENTS.md', 'README.md', 'LICENSE', 'VERSION', 'CHANGELOG.md',
-                '.gitignore', 'install.sh', 'uninstall.sh',
+                '.gitignore', 'install.sh', 'uninstall.sh', 'install.ps1', 'uninstall.ps1',
                 'assets', 'bin', 'completions', 'docs', 'lib',
                 'man', 'powershell', 'scripts', 'tests', '.pi/settings.json',
                 '.pi/prompts', '.pi/skills', '.local/src', '.local/logo')

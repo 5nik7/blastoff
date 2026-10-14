@@ -34,7 +34,7 @@ class PowerShellCompletionSourceTests(unittest.TestCase):
     def test_wrapper_forwarding_and_status_remain_intact(self):
         self.assertNotIn('CmdletBinding(', self.wrapper)
         self.assertNotIn('param(', self.wrapper)
-        self.assertIn('& $runtime @prefix -I $script:CorePath @forward', self.wrapper)
+        self.assertIn('& $runtime @prefix -I -B $script:CorePath --_powershell-argv-v1 $envelope', self.wrapper)
         self.assertIn('$global:LASTEXITCODE = $LASTEXITCODE', self.wrapper)
         self.assertIn('$global:LASTEXITCODE = 3', self.wrapper)
         self.assertIn('Set-Alias -Name blastoff -Value Invoke-Blastoff', self.wrapper)
@@ -71,6 +71,7 @@ class PowerShellCompletionSourceTests(unittest.TestCase):
                      'module', 'backup', 'migrate', 'completion', 'apply', 'save',
                      'copy', 'import', 'delete', 'load', 'create', 'restore',
                      '--help', '--json', '--color', '--force', '--replace-link',
+                     '--verbose', '--dry-run', '--fancy', '--fzf', '--all', '--pick', '--yes', 'unicode', 'ascii', 'show', 'edit',
                      '--version', 'local:', 'preset:', 'bash', 'zsh', 'fish'):
             self.assertIn("'" + word + "'", self.completer)
         self.assertIn('$env:BLASTOFF_HOME', self.completer)
@@ -82,7 +83,7 @@ class PowerShellCompletionSourceTests(unittest.TestCase):
         self.assertIn(r'\A[A-Za-z0-9][A-Za-z0-9_-]{0,95}\z', self.completer)
         self.assertIn(r'\A(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])\z', self.completer)
         self.assertIn('$positionals.Count -eq 2', self.completer)
-        self.assertNotIn("$kind = 'backups'", self.completer)
+        self.assertIn("$kind = 'backups'", self.completer)
 
 
 @unittest.skipUnless(PWSH, 'pwsh unavailable; no PowerShell/native Windows verification')
@@ -94,6 +95,9 @@ class PowerShellCompletionEngineTests(unittest.TestCase):
             themes = store / 'themes'
             themes.mkdir(parents=True)
             (store / 'modules').mkdir()
+            (store / 'backups').mkdir()
+            for suffix in ('json','toml'):
+                (store/'backups'/('sample.'+suffix)).write_text('')
             # Invalid TOML intentionally: completion must inspect names, not content.
             for name in ('alpha', 'a' * 96, 'a' * 97, 'bad.name', '_bad', 'éclair'):
                 (themes / (name + '.toml')).write_text('not TOML', encoding='utf-8')
@@ -125,6 +129,7 @@ class PowerShellCompletionEngineTests(unittest.TestCase):
             env = dict(os.environ, HOME=str(home), USERPROFILE=str(home),
                        BLASTOFF_HOME=str(store), STARSHIP_CONFIG=str(config),
                        BLASTOFF_PYTHON=str(empty_bin / 'must-not-run'),
+                       BLASTOFF_TEST_PYTHON=sys.executable,
                        BLASTOFF_TEST_CASE_SENSITIVE=str(int(case_sensitive)),
                        BLASTOFF_TEST_LINKED_STORE=str(alias),
                        PATH=str(empty_bin), XDG_CACHE_HOME=str(home / 'cache'),
@@ -135,6 +140,7 @@ $ErrorActionPreference = 'Stop'
 $global:LASTEXITCODE = 73
 Import-Module '__MANIFEST__' -Force
 if ($LASTEXITCODE -ne 73) { throw 'Import changed LASTEXITCODE' }
+if (-not $IsWindows -and -not (Get-Item -LiteralPath '__MANIFEST__').PSObject.Properties['UnixMode']) { $env:BLASTOFF_PYTHON=$env:BLASTOFF_TEST_PYTHON }
 function Check($line, $wanted, $unwanted, $cursor = $line.Length) {
     $matches = @((TabExpansion2 $line $cursor).CompletionMatches | ForEach-Object { $_.CompletionText })
     foreach ($value in $wanted) {
@@ -165,6 +171,14 @@ foreach ($command in @('blastoff', 'Invoke-Blastoff')) {
     Check "$command -theme a" @('alpha') @()
     Check "$command theme delete a" @('alpha') @('local:', 'preset:')
     Check "$command module load s" @('snippet') @('alpha')
+    Check "$command module show s" @('snippet') @()
+    Check "$command backup restore s" @('sample') @()
+    Check "$command backup delete sample " @('sample','y','yes') @('all')
+    Check "$command backup delete --all " @('y','yes') @('sample')
+    Check "$command pick --fancy " @('unicode','ascii') @()
+    Check "$command pick " @('fancy','fzf') @()
+    Check "$command module show --" @('--fancy','--fzf') @()
+    Check "$command backup delete --pick --" @('--fancy','--fzf') @()
     Check "$command module delete s" @('snippet') @()
     Check "$command theme copy alpha " @() @('alpha', 'local:', 'preset:')
     Check "$command theme save " @() @('alpha')

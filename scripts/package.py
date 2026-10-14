@@ -6,6 +6,7 @@ import hashlib
 import io
 import importlib.util
 import json
+import re
 from pathlib import Path
 import tarfile
 import zipfile
@@ -16,6 +17,15 @@ core=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(core)
 if core.VERSION != version:
     raise SystemExit('Core VERSION differs from VERSION; update release identities together')
+manifest_version = re.search(r"ModuleVersion\s*=\s*'([^']+)'", (ROOT/'powershell/blastoff.psd1').read_text()).group(1)
+if manifest_version != version or 'blastoff '+version not in (ROOT/'man/blastoff.1').read_text().splitlines()[0]:
+    raise SystemExit('PowerShell/manual release identities differ from VERSION')
+# Both public lifecycle frontends and their installed helpers are release payload.
+for relative in ('install.ps1','uninstall.ps1','powershell/runtime.ps1',
+                 'scripts/powershell_lifecycle.ps1','scripts/powershell_install.py',
+                 'lib/argv_transport.py','lib/completion_names.py'):
+    if not (ROOT/relative).is_file():
+        raise SystemExit('Missing required PowerShell release payload: '+relative)
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--output-dir', type=Path, default=ROOT.parent,
                     help='archive destination (use a temporary directory for verification)')

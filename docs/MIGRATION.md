@@ -44,3 +44,20 @@ writes through linked parent directories are refused in this build.
 6. Keep the original directories and old script/module until the new setup has
    passed your native-host checks. Switching entries in PATH/profiles and later
    deleting legacy files are separate explicit actions, not automatic migration.
+
+
+## 0.1.7 tracking and backup compatibility
+
+No existing theme/module/config path is moved. Provenance is created lazily after
+successful apply/save/edit/load/restore under `<storage>/state/provenance`.
+An unknown origin is not guessed from byte-identical theme files: use an explicit
+apply or save-as to establish the intended association. Old config backups restore
+content with unknown provenance. Root storage links remain supported; linked
+children are still refused. Uninstall retains tracking and editor recovery data.
+Preview migration with `blastoff migrate /absolute/source --dry-run`.
+
+## 0.1.8 follow-up
+
+Root PowerShell installation uses independent CurrentUser ownership; legacy prefix
+integration must be reviewed with its owning installer before changing profiles.
+There is no automatic Windows/WSL path or data migration. See POWERSHELL.md.

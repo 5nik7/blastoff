@@ -87,6 +87,39 @@ class CompletionTests(unittest.TestCase):
         self.assertEqual(result.stderr, '', result.stderr)
         return {line.split('\t')[0] for line in result.stdout.splitlines() if line}
 
+    def test_release_017_contexts(self):
+        for reserved in ('all','y','yes'):
+            for suffix in ('toml','json'):
+                (self.store/'backups'/(reserved+'.'+suffix)).write_text('')
+        cases = [
+            (['theme',''], {'edit'}, set()),
+            (['module','show',''], {'snippet'}, {'alpha'}),
+            (['backup','delete',''], {'all','20260930T120000Z-abcdef'}, {'y','yes'}),
+            (['backup','delete','ID',''], {'y','yes','20260930T120000Z-abcdef'}, {'all'}),
+            (['backup','delete','--yes','--',''], {'all','y','yes'}, set()),
+            (['backup','delete','all','yes',''], set(), {'y','yes','all','20260930T120000Z-abcdef'}),
+            (['backup','delete','ID','Yes',''], set(), {'y','yes','all','20260930T120000Z-abcdef'}),
+            (['backup','delete','ALL',''], {'y','yes'}, {'20260930T120000Z-abcdef','all'}),
+            (['backup','delete','--all',''], {'y','yes'}, {'20260930T120000Z-abcdef'}),
+            (['backup','delete','--'], {'--all','--pick','--yes','--dry-run','--verbose'}, set()),
+            (['pick',''], {'fancy','fzf'}, set()),
+            (['pick','--'], {'--fancy','--fzf'}, set()),
+            (['pick','--fzf','--'], {'--fzf'}, {'--fancy'}),
+            (['pick','fancy','--'], {'--fancy'}, {'--fzf'}),
+            (['module','show','--'], {'--fancy','--fzf'}, set()),
+            (['backup','delete','--pick','--'], {'--fancy','--fzf'}, set()),
+            (['backup','delete','--pick','--fancy',''], {'unicode','ascii'}, {'all'}),
+            (['pick','--fancy',''], {'unicode','ascii'}, {'fancy'}),
+            (['pick','--fancy='], {'--fancy=unicode','--fancy=ascii'}, set()),
+            (['-v','module','--dry-run','show',''], {'snippet'}, set()),
+        ]
+        for shell in SHELLS:
+            for args, expected, excluded in cases:
+                with self.subTest(shell=shell,args=args):
+                    got=self.complete(shell,args)
+                    self.assertTrue(expected <= got,(expected,got))
+                    self.assertFalse(excluded & got,got)
+
     def test_positions(self):
         cases = [
             (['theme', 'apply', ''], {'alpha', 'local:', 'preset:'}, {'snippet'}),

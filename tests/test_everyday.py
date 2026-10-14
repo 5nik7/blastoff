@@ -49,8 +49,14 @@ class Everyday(unittest.TestCase):
                 with self.subTest(value=value, args=args):
                     result = self.cli(*args, '--json')
                     self.assertEqual(result.returncode, 1)
-                    self.assertEqual(result.stdout, b'')
-                    self.assertIn('metadata', json.loads(result.stderr)['error'])
+                    if args == ('backup','list'):
+                        doc=json.loads(result.stdout)
+                        self.assertEqual(doc['backups'],[])
+                        self.assertEqual(doc['errors'][0]['id'],'bad')
+                        self.assertIn('metadata',json.loads(result.stderr)['message'])
+                    else:
+                        self.assertEqual(result.stdout, b'')
+                        self.assertIn('metadata', json.loads(result.stderr)['error'])
                     self.assertEqual(self.config.read_bytes(), b'x=1\n')
                     self.assertEqual(len(list(backups.iterdir())), 2)
 

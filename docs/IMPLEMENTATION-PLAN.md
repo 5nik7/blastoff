@@ -1,3 +1,112 @@
+# 0.1.10 no-argument help follow-up
+
+- [x] Shared parser handles bare/global-flags-only human help before application imports
+- [x] Preserve explicit JSON welcome, nested help, version and invalid-option errors
+- [x] Exact-output/core/Bash/PTY/import checks and PowerShell/installed parity cases
+- [x] Current help descriptions/examples reconciled; historical checkpoints retained
+- [x] Full suite (266 tests, seven skips), available shell/manual checks and separate Python/Bash startup samples
+- [x] Final evidence, checksums and separately located verified review archives
+
+Retain the current review version and existing work. No live installation or Git
+publication. Native Windows/PowerShell and human visual gates remain separate.
+
+# 0.1.10 theme-list readability — implementation checkpoint
+
+- [x] Shared styles and list renderer; trusted origin/current/modified markers
+- [x] Bounded read-only inspection and concurrent-change detection
+- [x] Focused tests and PowerShell parity cases; help/docs/preferences reconciled
+- [x] Available native checks, paired baseline comparison and isolated lifecycle verification (261 tests, seven skips)
+- [x] Final evidence, checksum/archive generation and verification
+
+No JSON/CLI/storage changes. Preserve the existing 0.1.9 work and historical records.
+Native PowerShell/Windows/WSL and human visuals remain unverified until run. Manual
+acceptance is still paused at step 5, without implying previous passes or installation.
+
+# 0.1.9 backup-list readability — implementation checkpoint
+
+- [x] Shared sanitized token output and reusable accents in lib/blastoff.py
+- [x] Spaced/narrow records, aware UTC and inspected byte sizes in lib/backups.py
+- [x] Guidelines, examples, manual and current-version references reconciled
+- [x] Focused/full tests, help/completion checks and native evidence recorded (248 tests; seven skips)
+- [x] Focused empty/populated baseline comparison and reproducible package/upgrade verification
+
+No CLI/JSON/schema/storage changes. Preserve existing work and historical evidence.
+Manual review remains paused at step 5; native PowerShell and human visuals remain
+pending until run. Finish evidence/doc edits before final checksum/archive creation.
+
+# 0.1.8 follow-up — implementation checkpoint
+
+Approved follow-up: fancy defaults across browsers, explicit basic --fzf,
+correct fzf/bat inheritance, human output by default, PowerShell 7+ parity,
+CurrentUser root PowerShell lifecycle, lightweight completion and measured startup.
+Preserve the existing 0.1.7 work, data/ownership protections and shared Python core.
+
+- [x] Human output policy and backup renderer
+- [x] Shared fancy/basic syntax and configuration inheritance
+- [x] PowerShell forwarding, completion and native-host boundaries
+- [x] Root PowerShell lifecycle using shared ownership/atomic-write helpers
+- [x] All help/completion/manual/docs/workflow surfaces reconciled
+- [x] Focused/full native Termux checks and isolated lifecycle verification (242 tests; seven explicit skips)
+- [x] Baseline and follow-up performance evidence; unavailable hosts deferred
+- [x] Final source inventory, checksums, reproducible archives and extracted-install checks
+
+Implementation files: lib/cli.py, blastoff.py, backups.py, operations.py,
+picker_ui.py, preview.py, argv_transport.py and completion_names.py;
+powershell/blastoff.psm1, blastoff.psd1 and runtime.ps1; root install.ps1 and
+uninstall.ps1; scripts/powershell_lifecycle.ps1, powershell_install.py, install.py,
+integration.py, interactive_check.py, benchmark.py, benchmark-powershell.ps1,
+package.py and verify.py. Shell completion, native-session/lifecycle harnesses,
+fixture tests and platform documentation ship together. Runtime business logic
+remains in the shared core; the lifecycle layout uses the shared transaction engine.
+
+Manual acceptance is paused at step 5 (backup deletion). Earlier steps and live
+installation are not assumed passed. Native Windows/WSL/PowerShell and real fzf
+checks remain pending where unavailable. Human appearance is separate from tests.
+Final packaging follows all code, documentation and evidence edits. No live
+installation, profile/config changes, commit, tag or publication is authorized.
+
+The following checkpoint is historical; its default-basic picker and related
+configuration/output descriptions are superseded by the 0.1.8 contract.
+
+# 0.1.7 implementation checkpoint
+
+Approved scope: shared verbose/dry-run; versioned provenance; staged active editing;
+interactive save; safe multi-backup deletion; basic/fancy responsive pickers;
+module viewing; four-shell completion, documentation and release verification.
+
+- [x] Shared preparation and diagnostics
+- [x] Provenance, backup metadata and current status
+- [x] Editor and interactive save
+- [x] Backup deletion
+- [x] Shared previews, picker styles and module viewing
+- [x] Completion/help/manual/documentation consistency
+- [x] Focused/full native tests and performance (221 tests; five explicit platform/tool skips)
+- [x] Final checksums, reproducible archives and isolated 0.1.6 upgrade/uninstall
+
+Implementation map (0.1.7; actual verification is recorded in STATUS.md):
+
+| Requirement | Deliverables and acceptance |
+|---|---|
+| Shared safety/output | `lib/cli.py`, `lib/blastoff.py`, `lib/operations.py`; global flags, read-only preflight, stderr diagnostics, unchanged shell entry points; `test_dry_run.py` and existing core/storage tests |
+| Backup deletion | `lib/backups.py`; frozen selection, aliases/escaping, confirmation, payload/metadata guards, partial failures; `test_backup_delete.py` |
+| Edit and save | `lib/editor.py`, `lib/operations.py`; waiting argv, staged recovery, destination/config/tracking concurrency; `test_edit.py`, `test_theme_save.py` |
+| Provenance | `lib/provenance.py`; path-associated versioned state, pending failure marker, backup snapshot, no guessed destination; `test_provenance.py`, `test_current.py` |
+| Pickers and modules | `lib/picker_ui.py`, `lib/preview.py`; reviewed options, basic/fancy, Ctrl-X, responsive bat/plain source, numeric IDs; picker/preview/options/module tests |
+| User and shell contract | `lib/cli.py`, all four completions, `man/blastoff.1`; actual Bash/Zsh/Fish contexts and static/optional PowerShell checks; `test_completions.py`, `test_powershell_completion.py`, `test_docs_contract.py` |
+| Lifecycle | `scripts/install.py`, `scripts/package.py`, existing wrappers/ownership engine; installed siblings, actual historical-version upgrade, data retention; installed/public/planning/packaging tests |
+| Documentation | README, quickstart, CLI contract, installation/migration/recovery, UX/check guides, decisions, preferences/agent/pi workflows, changelog/version and this checkpoint; preserve historical evidence |
+
+Remaining release gates are explicit: real fzf selection/resizing and fancy
+visuals, human terminal/plugin checks, and native Windows/PowerShell parity.
+These are not implied by fixture/static checks. Rendered prompt previews are
+excluded from this release because no safe execution isolation is provided.
+
+Native Windows is deferred. Human visuals and unavailable native tools must remain
+unverified until run. No live install/profile/config changes or Git publication.
+Final packaging follows all code and documentation edits; rebuild after any later
+edit. The older continuation plan below is historical and superseded by this
+checklist, CLI-CONTRACT.md and decisions/0002-provenance-and-interactive-editing.md.
+
 # Implementation and continuation plan
 
 The 0.1.0 review build is already in the actual repository; no staging copy,

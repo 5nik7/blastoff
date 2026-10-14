@@ -4,6 +4,17 @@ Lifecycle operations are offline and preserve Starship config, themes, modules
 and application backups. Python 3.11+ and Bash are required for the public shell
 entry points; dependencies are not installed automatically.
 
+## Root PowerShell lifecycle
+
+PowerShell 7+ users run `.\install.ps1 -WhatIf`, `.\install.ps1`,
+`.\uninstall.ps1 -WhatIf`, and `.\uninstall.ps1` from reviewed source.
+-Verbose is supported; -DryRun is equivalent to WhatIf. This uses a self-contained
+CurrentUser module layout, not the prefix layout below. See [POWERSHELL.md](POWERSHELL.md)
+for redirected Documents/custom paths, -ModuleRoot, -ProfilePath/-NoProfile,
+owned import blocks, independent frontend removal and deferred native checks.
+Legacy `scripts/install.ps1` remains a compatibility bridge with its original
+syntax; it does not silently migrate to the CurrentUser root-script layout.
+
 ## Public installation
 
 From the extracted/reviewed source directory:
@@ -17,7 +28,8 @@ blastoff doctor --json
 
 No action word or `--yes` is needed. To choose a different destination, use
 `bash install.sh --prefix /absolute/path --dry-run`, then the same command without
-`--dry-run` after reviewing its plan. Defaults for all lifecycle entry points:
+`--dry-run` after reviewing its plan. Defaults for shell and legacy prefix lifecycle entry points (root PowerShell uses
+the separate CurrentUser layout in POWERSHELL.md):
 
 | Host | Default prefix |
 |---|---|
@@ -32,7 +44,7 @@ writes, shell probes or executing profiles. Installing also never executes
 profiles automatically; start a fresh shell or review the printed activation
 commands for your current session. Bash may need `hash -r`, Zsh `rehash`.
 
-The payload is `<prefix>/share/blastoff/versions/0.1.6`. On POSIX the launcher
+The payload is `<prefix>/share/blastoff/versions/0.1.10`. On POSIX the launcher
 uses the discovered absolute Bash path, avoiding Termux's absent `/usr/bin/env`.
 `BLASTOFF_PYTHON` selects an interpreter executable, not a command with flags.
 Fresh native Windows installs omit the POSIX launcher even if Git Bash exists.
@@ -53,8 +65,8 @@ Public installation prefers native discovery directories:
 Custom prefixes or missing native discovery can require minimal owned hooks for
 PATH, MANPATH and completion. Bash/Zsh use marked profile blocks and helpers
 under `<prefix>/share/blastoff/integration`; Fish uses a `conf.d/blastoff.fish`
-drop-in and, when needed, a user completion copy. When `pwsh` is available,
-PowerShell integration imports the absolute versioned `powershell/blastoff.psd1`
+drop-in and, when needed, a user completion copy. Unless an independent CurrentUser managed PowerShell block already exists,
+available `pwsh` integration imports the absolute versioned `powershell/blastoff.psd1`
 through an owned profile hook. Module import registers offline completion without
 starting Python or Starship; it is not a native Windows verification claim.
 
@@ -102,7 +114,7 @@ If the source is unavailable, use the installed public wrapper, for example on
 Termux with the default prefix:
 
 ```sh
-bash "$PREFIX/share/blastoff/versions/0.1.6/uninstall.sh" --prefix "$PREFIX" --dry-run
+bash "$PREFIX/share/blastoff/versions/0.1.10/uninstall.sh" --prefix "$PREFIX" --dry-run
 # Remove --dry-run only when removal is wanted.
 ```
 
@@ -152,7 +164,7 @@ Native PowerShell 7+ (no Bash/WSL needed):
 ```
 
 For manual activation, substitute your actual absolute prefix below. PowerShell
-can import `<prefix>/share/blastoff/versions/0.1.6/powershell/blastoff.psd1`
+can import `<prefix>/share/blastoff/versions/0.1.10/powershell/blastoff.psd1`
 explicitly. Bash can source `<prefix>/share/bash-completion/completions/blastoff`;
 Fish can source `<prefix>/share/fish/vendor_completions.d/blastoff.fish`.
 For Zsh, add `<prefix>/share/zsh/site-functions` to `fpath` before your existing
@@ -172,3 +184,19 @@ real-install examples. Installed-package rehearsals live in
 `tests/test_installed_package.py`; native shell/human checks are documented in
 `INTERACTIVE-CHECKS.md`. Current results belong in `STATUS.md`; this documentation
 update does not claim new test passes, a real installation or profile changes.
+
+## 0.1.8 retained user state and verification
+
+The versioned payload includes operations, provenance, editor, backup and preview
+helpers beside the Python core. Ownership tracking covers these installed files;
+source-checkout removal must not break previews. Installation/uninstallation never
+creates or deletes application provenance under `<storage>/state/provenance`, or
+editor recovery directories beside the active config. These remain user data.
+No automatic migration is needed: old config backups remain readable with unknown
+origin when they lack provenance. Bat and fzf remain optional; no dependencies are
+installed. -v/--verbose shows detailed lifecycle actions on stderr.
+
+Rehearse 0.1.9 to 0.1.10 upgrades in temporary prefixes using the actual old source,
+then verify helper resolution, completions, manual/version and retained data after
+uninstall. Final checksums/packages follow final code and documentation edits.
+Native Windows and human visual checks remain separate gates in STATUS.md.

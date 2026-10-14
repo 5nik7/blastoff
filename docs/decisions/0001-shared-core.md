@@ -26,3 +26,7 @@ Copy-on-apply avoids privileged Windows symlink creation and accidental edits of
 stored themes. Existing active config symlinks require explicit conversion and
 get both content and link-text backup evidence. Native platform tests are still
 required; a shared core does not prove wrapper parity or filesystem semantics.
+
+The 0.1.7 extension is documented in [decision 0002](0002-provenance-and-interactive-editing.md); it retains this shared-core choice.
+
+The 0.1.8 frontend/lifecycle boundary is recorded in [decision 0003](0003-picker-output-and-powershell-lifecycle.md); shared business logic remains Python.

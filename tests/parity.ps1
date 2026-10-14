@@ -1,12 +1,10 @@
-#requires -Version 7.2
+#requires -Version 7.0
 # Run in a disposable native Windows process: pwsh -NoProfile -File ./tests/parity.ps1
-# This harness needs 7.2+ native stderr semantics; it does NOT certify the
-# manifest's entire 7.0+ range. Literal-argument behavior is deliberately tested,
-# not normalized to hide Legacy argument-passing failures.
-param([switch]$KeepSandbox)
+# Record the actual host/version. Linux/WSL runs never certify native Windows.
+param([switch]$KeepSandbox,[switch]$AllowNonWindows)
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false # Expected nonzero statuses are assertions.
-if (-not $IsWindows) { throw 'Native Windows is required; Linux PowerShell/WSL is not Windows evidence.' }
+if (-not $IsWindows -and -not $AllowNonWindows) { throw 'Use -AllowNonWindows for a separately labelled Linux/WSL run; it is not Windows evidence.' }
 $root = Split-Path $PSScriptRoot -Parent
 $temporaryRoot = Join-Path ([IO.Path]::GetTempPath()) ('blastoff parity ü ' + [Guid]::NewGuid().ToString('N'))
 $names = @('BLASTOFF_HOME','STARSHIP_CONFIG','BLASTOFF_PYTHON','NO_COLOR',
@@ -26,7 +24,7 @@ try {
     if ($LASTEXITCODE -ne 0 -or -not $resolved) { throw 'A native Windows Python 3.11+ executable is required.' }
     $python = ([string]$resolved).Trim()
     $platform = & $python -c 'import os; print(os.name)'
-    if ($LASTEXITCODE -ne 0 -or $platform -ne 'nt') { throw 'Python must be native Windows, not WSL.' }
+    if ($LASTEXITCODE -ne 0 -or $platform -ne $(if ($IsWindows) { 'nt' } else { 'posix' })) { throw 'Python must match the PowerShell host platform.' }
     $env:HOME = $temporaryRoot
     $env:USERPROFILE = $temporaryRoot
     $env:BLASTOFF_HOME = Join-Path $temporaryRoot 'store with spaces ü'
@@ -43,7 +41,10 @@ try {
     New-Item -ItemType Directory -Path (Join-Path $probeRoot 'lib'),(Join-Path $probeRoot 'powershell') | Out-Null
     $probeModule = Join-Path $probeRoot 'powershell/blastoff.psm1'
     Copy-Item -LiteralPath (Join-Path $root 'powershell/blastoff.psm1') -Destination $probeModule
-    [IO.File]::WriteAllText((Join-Path $probeRoot 'lib/blastoff.py'), 'import json,sys; print(json.dumps(sys.argv[1:]))', $utf8)
+    Copy-Item -LiteralPath (Join-Path $root 'powershell/runtime.ps1') -Destination (Join-Path $probeRoot 'powershell/runtime.ps1')
+    # Independent probe decoder: assert original argv, not equality between two
+    # frontend calls that might both corrupt the same argument.
+    [IO.File]::WriteAllText((Join-Path $probeRoot 'lib/blastoff.py'), 'import base64,json,sys; assert sys.argv[1]=="--_powershell-argv-v1"; print(json.dumps(json.loads(base64.b64decode(sys.argv[2]))["argv"]))', $utf8)
     $env:BLASTOFF_PYTHON = $python
     $probe = Import-Module $probeModule -Force -PassThru
     $literal = @('', 'space value', 'Unicode ü λ', 'quote"inside', 'trailing\', '-HELP')
@@ -64,6 +65,9 @@ try {
     $missing = Join-Path $temporaryRoot "missing path ü's.toml"
     $cases = @(
         @{ A=@('--version'); C=0 }, @{ A=@('--help'); C=0 },
+        @{ A=@(); C=0 }, @{ A=@('-h'); C=0 },
+        @{ A=@('--color','never'); C=0 }, @{ A=@('--verbose','--dry-run'); C=0 },
+        @{ A=@('--json'); C=0 }, @{ A=@('--json','--help'); C=0 },
         @{ A=@('--list','--json'); C=0 }, @{ A=@('current','--json'); C=0 },
         @{ A=@('doctor','--json'); C=0 }, @{ A=@('module','list','--json'); C=0 },
         @{ A=@('--json','theme','apply'); C=2 },
@@ -71,8 +75,19 @@ try {
         @{ A=@('theme','save','','--json'); C=2 },
         @{ A=@('theme','import',$missing,'missing','--json'); C=1 },
         @{ A=@('-help'); C=0 }, @{ A=@('-list','--json'); C=0 },
-        @{ A=@('-theme','--json'); C=0 }
+        @{ A=@('-theme','--json'); C=0 },
+        @{ A=@('theme','save','--json'); C=2 },
+        @{ A=@('backup','delete','--all','--dry-run','--json'); C=0 },
+        @{ A=@('backup','delete','yes','--json'); C=2 },
+        @{ A=@('module','show','--json'); C=2 },
+        @{ A=@('pick','--fancy','ascii','--dry-run','--json'); C=0 },
+        @{ A=@('pick','--fzf','--dry-run','--json'); C=0 },
+        @{ A=@('backup','list'); C=0 },
+        @{ A=@('--json','backup','list'); C=0 },
+        @{ A=@('pick','fancy','--fzf'); C=2 }
     )
+    $rootHelp = (& $python -I (Join-Path $root 'lib/blastoff.py') --help | Out-String)
+    if ($LASTEXITCODE -ne 0) { throw 'Root help failed' }
     $passed = 0
     foreach ($case in $cases) {
         $invocation = $case.A
@@ -94,6 +109,10 @@ try {
         if ($case.C -ne 0 -and ($actual.Trim().Length -ne 0 -or ($errorText | ConvertFrom-Json).code -ne $case.C)) {
             throw 'Error stream/JSON contract mismatch'
         }
+        if (($invocation.Count -eq 0 -or ($invocation -join ' ') -in @('-h','--help','--color never','--verbose --dry-run')) -and
+            ($actual -cne $rootHelp -or $errorText.Length -ne 0)) {
+            throw 'Implicit/explicit root help differs'
+        }
         $passed++
     }
     if (Test-Path -LiteralPath $env:BLASTOFF_HOME) { throw 'Read-only cases created storage.' }
@@ -102,11 +121,52 @@ try {
     [IO.File]::WriteAllText((Join-Path $themeDir 'purple.toml'), "[directory]`nstyle = 'purple'`n", $utf8)
     blastoff -theme purple --json | Out-Null
     if ($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $env:STARSHIP_CONFIG)) { throw 'Legacy theme alias failed' }
+    $originalActive = [IO.File]::ReadAllText($env:STARSHIP_CONFIG)
+    $listNoColor = $env:NO_COLOR
+    try {
+        foreach ($modified in @($false,$true)) {
+            if ($modified) { [IO.File]::WriteAllText($env:STARSHIP_CONFIG, $originalActive+"# edited`n", $utf8) }
+            foreach ($flags in @(@('--color','never'),@('--color','always'),@('--json'))) {
+                [Environment]::SetEnvironmentVariable('NO_COLOR', $null, 'Process')
+                $baseline = (& $python -I (Join-Path $root 'lib/blastoff.py') list @flags 2> (Join-Path $temporaryRoot 'list-core.err') | Out-String)
+                $baselineCode = $LASTEXITCODE
+                $actual = (blastoff list @flags 2> (Join-Path $temporaryRoot 'list-module.err') | Out-String)
+                if ($baselineCode -ne 0 -or $LASTEXITCODE -ne 0 -or $actual -cne $baseline) { throw 'Theme-list output parity mismatch' }
+                if ([IO.File]::ReadAllText((Join-Path $temporaryRoot 'list-core.err')) -cne [IO.File]::ReadAllText((Join-Path $temporaryRoot 'list-module.err'))) { throw 'Theme-list diagnostic parity mismatch' }
+                if ($flags[0] -ne '--json') {
+                    $marker = if ($modified) { '[last loaded; modified]' } else { '[current]' }
+                    if (-not $actual.Contains($marker)) { throw 'Theme-list origin marker missing' }
+                }
+            }
+        }
+    } finally {
+        $env:NO_COLOR = $listNoColor
+        [IO.File]::WriteAllText($env:STARSHIP_CONFIG, $originalActive, $utf8)
+    }
     blastoff module save directory compact --json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Module save failed' }
     blastoff module load compact --json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Module load failed' }
-    Write-Output "Passed literal argv/import checks, $passed read/error parity cases and 3 isolated mutations."
+    blastoff module show compact --json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Module show failed' }
+    $backup = blastoff backup create --json | ConvertFrom-Json
+    if ($LASTEXITCODE -ne 0) { throw 'Backup create failed' }
+    $savedColumns=$env:COLUMNS
+    try {
+        foreach ($columns in @('80','24')) {
+            $env:COLUMNS=$columns
+            foreach ($flags in @(@('--color','never'),@('--json'))) {
+                $baseline=(& $python -I (Join-Path $root 'lib/blastoff.py') backup list @flags | Out-String)
+                $baselineCode=$LASTEXITCODE
+                $actual=(blastoff backup list @flags | Out-String)
+                if ($baselineCode -ne 0 -or $LASTEXITCODE -ne 0 -or $actual -cne $baseline) { throw 'Populated backup-list parity mismatch' }
+                if ($flags[0] -eq '--color' -and $columns -eq '24' -and $actual -notmatch '(?m)^  Size: ') { throw 'Narrow backup size row missing' }
+            }
+        }
+    } finally { $env:COLUMNS=$savedColumns }
+    blastoff backup delete $backup.backup --yes --json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Backup delete failed' }
+    Write-Output "Passed literal argv/import checks, $passed read/error parity cases and isolated mutation/view/deletion checks."
     $success = $true
 } finally {
     foreach ($key in $names) { [Environment]::SetEnvironmentVariable($key, $previous[$key], 'Process') }

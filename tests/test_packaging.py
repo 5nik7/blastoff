@@ -24,7 +24,7 @@ class Packaging(unittest.TestCase):
             root = Path(directory)
             wanted = ['VERSION','LICENSE','lib/blastoff.py','.pi/settings.json',
                       '.pi/skills/a/SKILL.md','.local/src/original','.local/logo/original.png',
-                      'install.sh','uninstall.sh','scripts/build.sh',
+                      'install.sh','uninstall.sh','install.ps1','uninstall.ps1','scripts/build.sh',
                       'scripts/install.py','scripts/integration.py','scripts/install.sh',
                       'scripts/install.ps1','powershell/blastoff.psm1','powershell/blastoff.psd1',
                       'tests/test_powershell_completion.py']
@@ -123,13 +123,19 @@ class Packaging(unittest.TestCase):
             root = Path(directory)/'source'
             root.mkdir()
             for name in ('scripts/package.py', 'scripts/verify.py', 'scripts/build.sh',
-                         'scripts/install.sh', 'install.sh', 'uninstall.sh', 'bin/blastoff'):
+                         'scripts/install.sh', 'install.sh', 'uninstall.sh', 'bin/blastoff',
+                         'install.ps1','uninstall.ps1','powershell/runtime.ps1',
+                         'scripts/powershell_install.py','scripts/powershell_lifecycle.ps1',
+                         'lib/argv_transport.py','lib/completion_names.py'):
                 target = root/name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(ROOT/name, target)
             (root/'VERSION').write_text('1.2.3')
-            (root/'lib').mkdir()
+            (root/'lib').mkdir(exist_ok=True)
             (root/'lib/blastoff.py').write_text("VERSION = '1.2.3'\n")
+            (root/'powershell').mkdir(exist_ok=True); (root/'man').mkdir()
+            (root/'powershell/blastoff.psd1').write_text("@{ModuleVersion = '1.2.3'}\n")
+            (root/'man/blastoff.1').write_text('.TH BLASTOFF 1 "date" "blastoff 1.2.3"\n')
             for name in ('.env', '.pi/tasks/private.json', 'dist/private.zip',
                          'lib/__pycache__/private.pyc', '.local/private/key'):
                 target = root/name
@@ -139,7 +145,7 @@ class Packaging(unittest.TestCase):
                                      '--output-dir', str(Path(directory)/'out')],
                                     capture_output=True, text=True, check=False)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(verify.verify(root), 9)
+            self.assertEqual(verify.verify(root), 18)
             wanted = {p.relative_to(root).as_posix() for p in verify.source_files(root)} | {'CHECKSUMS.json'}
             executable = {'install.sh', 'uninstall.sh', 'scripts/build.sh',
                           'scripts/install.sh', 'bin/blastoff'}

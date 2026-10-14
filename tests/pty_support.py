@@ -7,7 +7,7 @@ import signal
 import time
 
 
-def terminal(command, env, keys=b'', ready=b'', columns=40, rows=16, timeout=12, followup=None):
+def terminal(command, env, keys=b'', ready=b'', columns=40, rows=16, timeout=12, followup=None, resize=None):
     import fcntl
     import pty
     import struct
@@ -52,6 +52,10 @@ def terminal(command, env, keys=b'', ready=b'', columns=40, rows=16, timeout=12,
                         os.write(fd, reply)
                     queries = re.sub(pattern, b'', queries)
                 queries = queries[-256:]
+                if resize and resize[0] in output:
+                    fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack('HHHH',resize[2],resize[1],0,0))
+                    os.killpg(pid,signal.SIGWINCH)
+                    resize=None
                 if not sent and ready in output:
                     if keys:
                         os.write(fd, keys)

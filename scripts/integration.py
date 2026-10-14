@@ -300,7 +300,15 @@ def plan(core, prefix, version_root, old, action, enabled=True):
                         "if not contains -- '' $MANPATH\n    set -gx MANPATH $MANPATH ''\nend\n")
                 owned('fish_dropin', text.encode())
         notes.append('Fresh shells use the installed paths; existing shells may need hash -r (Bash) or rehash (Zsh).')
-    if shutil.which('pwsh'):
+    ps_profile = allowed(r)['powershell']
+    independent_ps = False
+    if core.exists(ps_profile) and 'powershell' not in previous:
+        inspect(core, ps_profile)
+        data = core.read(ps_profile); codec,bom = encoding(data)
+        independent_ps = '# >>> blastoff powershell-currentuser ' in data[len(bom):].decode(codec)
+    if independent_ps:
+        notes.append('Independent CurrentUser PowerShell integration retained; shell installer does not own it.')
+    elif shutil.which('pwsh'):
         manifest = version_root/'powershell/blastoff.psd1'
         body = 'Import-Module '+psquote(manifest)+' -Global\n'
         payload(shared/'powershell.ps1', body)

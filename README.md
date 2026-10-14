@@ -1,17 +1,22 @@
 # blastoff
 
 A Starship theme switcher and module library with the same behavior from Bash
-and native PowerShell. This is a **0.1.6 review build** for integration with pi.
+and native PowerShell. This is a **0.1.10 review build** for integration with pi.
 See `docs/STATUS.md` before treating it as a production release.
 
 Fast, safe operation comes first. Human output uses purple/magenta accents;
-JSON/pipes stay clean. The core uses Python 3.11+ and no third-party packages.
+Human output remains readable when redirected; JSON requires explicit --json. The core uses Python 3.11+ and no third-party packages.
 Bash and PowerShell forward to that core, so they share paths and operations.
-Welcome and help share the actual terminal wordmark, with a compact fallback
-for narrow/redirected output. Help groups and colors commands/options without
-losing descriptions; `-h --color always` works in either option order. Neither
-welcome nor help discovers presets. Fzf has an explicit palette and an Alt-P
-configuration-preview toggle; previews never execute theme commands. See `docs/TERMINAL-UX.md` for safe source previews and update commands.
+Bare `blastoff`, `-h`, and `--help` show the same full help, with the actual terminal
+wordmark and a compact header for narrow/redirected output. Global flags without
+a command also show help; `blastoff --json` retains its JSON welcome object.
+Help groups and colors commands/options without losing descriptions;
+`-h --color always` works in either option order. Help never discovers presets.
+Fancy Unicode is the default picker;
+`pick --fzf` (or `pick fzf`) respects compatible user styling.
+`pick --fancy [unicode|ascii]` and `pick fancy` remain explicit choices. Ctrl-X toggles initially
+visible, responsive source previews; previews never execute theme commands.
+See `docs/TERMINAL-UX.md` for safe source previews and update commands.
 
 Start with `docs/PI-SETUP.md` for pi, `AGENTS.md` for agent rules and
 `docs/PROGRAMMING-PREFERENCES.md` for Nick's programming preferences.
@@ -55,12 +60,26 @@ Uninstall retains user data, unrelated profile content and recovery backups.
 See [installation and compatibility guidance](docs/INSTALLATION.md) before use.
 Dry-run writes nothing; source checksums remain mandatory, never auto-refreshed.
 
+PowerShell 7+ has its own root interface (no Bash or WSL):
+
+```powershell
+.\install.ps1 -WhatIf -Verbose
+.\install.ps1
+.\uninstall.ps1 -WhatIf
+.\uninstall.ps1
+```
+
+It installs a self-contained CurrentUser module and one owned profile import.
+Use `-NoProfile` for manual integration, or explicit `-ModuleRoot`/`-ProfilePath`.
+`-DryRun` is an alias in behavior for `-WhatIf`. See [PowerShell paths, parity,
+startup and retention](docs/POWERSHELL.md). Native execution remains a separate gate.
+
 ## Run from source
 
 Bash (including Termux, without relying on `/usr/bin/env` shebang translation):
 
 ```sh
-bash bin/blastoff                 # branded, width-aware welcome
+bash bin/blastoff                 # full help, identical to -h/--help
 bash bin/blastoff --help
 bash bin/blastoff --version
 bash bin/blastoff --list
@@ -90,24 +109,43 @@ blastoff theme apply local:example
 blastoff preset save catppuccin-powerline catppuccin
 blastoff theme save work
 blastoff theme copy work travel
-blastoff pick
+blastoff pick                          # fancy Unicode by default
+blastoff pick --fzf                    # compatible user fzf styling
+blastoff pick --fancy ascii            # explicit ASCII borders
+blastoff theme edit --dry-run          # inspect target/editor without launching
+blastoff theme edit                    # staged editing with recovery
+blastoff theme save                    # y/as/N for known local destination
 blastoff module save directory compact-directory
 blastoff module load compact-directory
+blastoff module show compact-directory
 blastoff backup create
-blastoff backup list
+blastoff backup list                   # spaced records, distinct field colors
+blastoff backup list --json            # explicit machine format
 blastoff backup restore BACKUP-ID
+blastoff backup delete --all --dry-run
+blastoff backup delete BACKUP-ID --yes
 blastoff theme delete travel --force
 ```
 
-Save/copy refuse existing names unless `--force` is supplied. Delete requires
-`--force` and makes a backup first. Apply copies theme bytes into a regular active
+Explicit save/copy refuse existing names unless `--force` is supplied. Interactive
+no-name save uses provenance and asks `Save edits to "<theme>"? [y/as/N]`; yes
+authorizes a backed-up replacement. Changed/unknown origins require save-as.
+Theme/module delete requires `--force` and makes a backup first. Backup delete is
+permanent, shows its frozen selection/count and defaults to No; use `--yes` for
+explicit noninteractive deletion, or `--pick` for fzf Tab/Shift-Tab selection. Apply copies theme bytes into a regular active
 config and backs up changed existing content; it never edits the stored theme.
 A symlinked active config requires explicit `--replace-link` to record the old
 link and replace it while preserving its target. Listing is read-only, including
 built-in presets. Module load replaces the selected table and descendants,
 preserving unrelated settings. Unsupported inline/dotted layouts fail safely.
 
-See `docs/CLI-CONTRACT.md` for aliases, collisions, output, recovery and limits;
+All mutations support `--dry-run` without writes or interaction; `-v/--verbose`
+sends diagnostics to stderr. Editor order is `$EDITOR`, nvim, vim, vi, code, nano.
+Invalid/conflicted edits are retained at a reported recovery path. `current` keeps
+last-loaded history independently of current content matches.
+
+See [recovery and troubleshooting](docs/RECOVERY.md) and
+`docs/CLI-CONTRACT.md` for aliases, collisions, output, recovery and limits;
 `docs/INSTALLATION.md` for lifecycle/completions/manual; `docs/MIGRATION.md` for
 moving legacy themes without moving Starship's config. For everyday Termux use,
 start with `docs/TERMUX-QUICKSTART.md` and the user-run update plan in
@@ -124,6 +162,7 @@ zsh -n completions/blastoff.zsh
 fish -n completions/blastoff.fish
 pwsh -NoProfile -File tests/parity.ps1
 python3 scripts/benchmark.py
+# After final code, documentation and evidence edits:
 python3 scripts/package.py
 python3 scripts/verify.py
 ```
@@ -133,3 +172,9 @@ the existing original sources in `.local/src` and assets in `.local/logo`.
 The rebuild is already in this repository; no package integration is needed.
 See `docs/TERMUX-AUDIT.md` for missing optional images and `docs/STATUS.md` for
 native evidence, remaining human checks and deferred Windows validation.
+
+`blastoff list` highlights the tracked theme as `[current]` in pink and keeps `local:` /
+`preset:` prefixes dim so names stand out. Edited content retains its origin as
+`[last loaded; modified]`; unknown origins remain unknown. `blastoff current`
+provides the explicit local-content matching query. JSON listing is unchanged.
+See [theme-list visual review](docs/TERMINAL-UX.md#theme-list-readability--0110).

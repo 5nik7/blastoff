@@ -5,11 +5,12 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import ExitStack, redirect_stderr, redirect_stdout
 from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parent.parent
@@ -57,17 +58,86 @@ class Help(unittest.TestCase):
         self.assertEqual(json.loads(self.cli('--json')[0])['name'],'blastoff')
 
     def test_grouped_complete_root_and_shared_header(self):
-        bare,_=self.cli()
-        short,_=self.cli('-h')
-        long,_=self.cli('--help')
+        bare,bare_error=self.cli()
+        short,short_error=self.cli('-h')
+        long,long_error=self.cli('--help')
+        self.assertEqual(bare,short)
         self.assertEqual(short,long)
-        self.assertEqual(bare.split('\n\n')[0],short.split('\n\n')[0])
+        self.assertEqual((bare_error,short_error,long_error),('','',''))
         self.assertNotIn('{list,current',short)
         for token in ['Browse & choose','Themes & modules','Backup & recovery',
                       '--version','--json','--color','--force','--replace-link',
                       '-l/--list','-t/--theme','bare -t/--theme']:
             self.assertIn(token,short)
         self.assertNotIn('\x1b',short)
+        self.assertEqual(list(self.home.iterdir()),[])
+
+    def test_global_flags_without_command_show_equivalent_help(self):
+        for flags in (['--color','never'], ['--color=always'], ['-v'], ['--verbose'],
+                      ['--dry-run'], ['--force'], ['--replace-link'],
+                      ['--color','always','--color','never','--verbose','--dry-run']):
+            with self.subTest(flags=flags):
+                implicit=self.cli(*flags)
+                self.assertEqual(implicit,self.cli(*flags,'--help'))
+                self.assertEqual(implicit[1],'')
+        plain=self.cli('--color','always',extra={'NO_COLOR':''})
+        self.assertEqual(plain,self.cli('-h','--color','always',extra={'NO_COLOR':''}))
+        self.assertNotIn('\x1b',plain[0])
+        self.assertEqual(list(self.home.iterdir()),[])
+
+    def test_no_command_json_and_explicit_json_help_keep_their_formats(self):
+        expected=json.loads(self.cli('--json')[0])
+        self.assertEqual(set(expected),{'name','version','description','examples'})
+        for flags in ([], ['--color','always'], ['--verbose','--dry-run','--force','--replace-link']):
+            out,err=self.cli(*flags,'--json')
+            self.assertEqual(json.loads(out),expected)
+            self.assertNotIn('\x1b',out)
+            self.assertEqual(err,'')
+        self.assertEqual(self.cli('--json','--help'),self.cli('--help'))
+
+    def test_implicit_help_does_not_hide_usage_errors(self):
+        for flags in (['--color'], ['--color','bogus'], ['--unknown'],
+                      ['unknown'], ['--','--help']):
+            with self.subTest(flags=flags):
+                out,err=self.cli(*flags,code=2)
+                self.assertEqual(out,'')
+                self.assertTrue(err.startswith('blastoff: '))
+        out,err=self.cli('--json','--color','bogus',code=2)
+        self.assertEqual(out,'')
+        self.assertEqual(json.loads(err)['code'],2)
+
+    def test_direct_core_help_never_initializes_application_or_tools(self):
+        expected=self.cli('--help')[0]
+        sentinel=self.home/'active.toml'
+        sentinel.write_text('invalid TOML sentinel')
+        for flags in ([], ['-h'], ['--help'], ['--color','never','--verbose']):
+            out,err=io.StringIO(),io.StringIO()
+            with ExitStack() as stack:
+                stack.enter_context(patch.dict(os.environ,self.env,clear=True))
+                stack.enter_context(redirect_stdout(out))
+                stack.enter_context(redirect_stderr(err))
+                for target in ('App','read','path'):
+                    stack.enter_context(patch.object(core,target,side_effect=AssertionError(target)))
+                for target in ('subprocess.Popen','os.scandir','os.mkdir','shutil.which'):
+                    stack.enter_context(patch(target,side_effect=AssertionError(target)))
+                with self.assertRaises(SystemExit) as stopped:
+                    core.run(flags)
+            self.assertEqual(stopped.exception.code,0)
+            self.assertEqual(out.getvalue(),expected)
+            self.assertEqual(err.getvalue(),'')
+        self.assertEqual(sentinel.read_text(),'invalid TOML sentinel')
+        self.assertEqual(list(self.home.iterdir()),[sentinel])
+
+    @unittest.skipUnless(shutil.which('bash'),'Bash required')
+    def test_bash_frontend_has_identical_help(self):
+        env=dict(self.env,BLASTOFF_PYTHON=sys.executable,
+                 BLASTOFF_HOME='relative',STARSHIP_CONFIG='relative')
+        for flags in ([], ['-h'], ['--help'], ['--color','never'], ['--dry-run']):
+            result=subprocess.run([shutil.which('bash'),str(ROOT/'bin/blastoff'),*flags],
+                                  env=env,capture_output=True,timeout=8)
+            self.assertEqual(result.returncode,0,result.stderr)
+            self.assertEqual(result.stderr,b'')
+            self.assertEqual(result.stdout.decode(),self.cli('--help')[0])
         self.assertEqual(list(self.home.iterdir()),[])
 
     def test_all_parser_descriptions_and_actions_survive(self):
@@ -165,19 +235,27 @@ class Help(unittest.TestCase):
     def test_real_tty_header_color_and_no_color(self):
         from pty_support import terminal
         env=dict(self.env); env.pop('COLUMNS')
-        for args in [[],['-h'],['--help','--color','always']]:
-            code,out=terminal([sys.executable,'-I',str(CORE),*args],env,columns=60,rows=30)
-            self.assertEqual(code,0)
-            self.assertIn('⣴⣦⣄',ANSI.sub('',out.decode()))
-            self.assertIn(b'\x1b[38;2;',out)
+        for width in (36,60):
+            outputs=[]
+            for args in [[],['-h'],['--help'],['--color','always']]:
+                code,out=terminal([sys.executable,'-I',str(CORE),*args],env,columns=width,rows=30)
+                self.assertEqual(code,0)
+                outputs.append(out)
+                if width == 60:
+                    self.assertIn('⣴⣦⣄',ANSI.sub('',out.decode()))
+                    self.assertIn(b'\x1b[38;2;',out)
+            self.assertTrue(all(out==outputs[0] for out in outputs))
         code,out=terminal([sys.executable,'-I',str(CORE),'-h','--color','always'],dict(env,NO_COLOR=''),columns=40,rows=30)
         self.assertEqual(code,0)
         self.assertNotIn(b'\x1b[',out)
 
     def test_fast_help_has_no_application_imports(self):
         # Import tracing proves the script exits before core/discovery modules.
-        result=subprocess.run([sys.executable,'-I','-X','importtime',str(CORE),'-h'],env=self.env,capture_output=True,timeout=8)
-        self.assertEqual(result.returncode,0)
-        for module in ['subprocess','tomllib','hashlib','uuid']:
-            self.assertFalse(any(line.rstrip().endswith(' '+module) for line in result.stderr.decode().splitlines()),module)
+        for flags in ([], ['-h'], ['--help'], ['--color','never','--verbose','--dry-run']):
+            result=subprocess.run([sys.executable,'-I','-X','importtime',str(CORE),*flags],
+                                  env=dict(self.env,BLASTOFF_HOME='relative',STARSHIP_CONFIG='relative'),
+                                  capture_output=True,timeout=8)
+            self.assertEqual(result.returncode,0)
+            for module in ['subprocess','tomllib','hashlib','uuid']:
+                self.assertFalse(any(line.rstrip().endswith(' '+module) for line in result.stderr.decode().splitlines()),module)
         self.assertEqual(list(self.home.iterdir()),[])

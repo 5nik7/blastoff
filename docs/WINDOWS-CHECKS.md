@@ -1,3 +1,25 @@
+# 0.1.8 native PowerShell follow-up (pending until run)
+
+Use [POWERSHELL.md](POWERSHELL.md) for the current parity matrix and root lifecycle.
+Run `tests/powershell_session.ps1`, `tests/parity.ps1`,
+`tests/powershell_lifecycle.ps1` and `scripts/benchmark-powershell.ps1` in fresh
+native sessions. The first completes commands before any Blastoff invocation;
+the lifecycle script uses explicit temporary ModuleRoot/ProfilePath. Test the
+manifest's PowerShell 7.0+ range independently; do not imply 5.1 support.
+
+Current root commands: `.\install.ps1 -WhatIf [-Verbose]`, `.\install.ps1`,
+`.\uninstall.ps1 -WhatIf`, `.\uninstall.ps1`; -DryRun is equivalent to WhatIf.
+-NoProfile opts out; custom roots/profile paths are explicit. Do not substitute
+old prefix-install tests for redirected Documents/profile/CurrentUser testing.
+Native Windows, Linux PowerShell and WSL runs need distinct evidence. For an
+explicit Linux/WSL parity run use -AllowNonWindows; it does not certify Windows.
+
+The retained detailed handoff below includes legacy prefix lifecycle tests and
+historical counts. Run current VERSION and record actual counts, not old totals.
+The private argv-envelope probe now asserts the literal original arguments using
+an independent decoder. Ctrl-C, Unicode text, ACL/reparse/locking, actual fzf/bat
+inheritance, GUI editors and visual checks remain native gates.
+
 # Native Windows validation handoff
 
 **Execution pending.** This guide and the test changes were reviewed on Termux;
@@ -11,9 +33,9 @@ WSL, static review and the completed Termux runs do not satisfy this gate.
   network drives and antivirus-controlled folders for the baseline. Record any
   subsequent tests on those filesystems separately.
 - Use **PowerShell 7.4 or newer** for the first run, not Windows PowerShell 5.1.
-  The module currently advertises 7.0+, which remains unverified. The parity
-  harness requires 7.2+ because native stderr redirection semantics changed in
-  7.2. Native empty/embedded-quote argument behavior changed in 7.3; older hosts
+  The module currently advertises 7.0+, which remains unverified. The current parity
+  harness permits 7.0+; its stderr/status checks must be run separately on 7.0/7.2
+  because native stderr redirection semantics changed in 7.2. Native empty/embedded-quote argument behavior changed in 7.3; older hosts
   and `Legacy` argument mode are separate compatibility gates, not assumed passes.
 - Native Python **3.11+**, selected by absolute executable path. Bash, WSL,
   Starship, fzf and gum are not prerequisites for core/module/lifecycle checks.
@@ -141,7 +163,7 @@ $usage = Get-Content -Raw -LiteralPath (Join-Path $Report 'usage.err.txt') | Con
 if ($usage.code -ne 2) { throw 'Expected one JSON error on stderr' }
 ```
 
-Expected: version `blastoff 0.1.0`, plain help, clean streams, and the shell remains
+Expected: version matching VERSION (currently `blastoff 0.1.10`), plain help, clean streams, and the shell remains
 open after status 2. A function exposes `$LASTEXITCODE`; it does **not** terminate
 the calling shell or set that shell process's eventual exit status. To propagate
 status from a separate automation process, explicitly `exit $LASTEXITCODE` there.
@@ -401,3 +423,21 @@ links first. No broad cleanup command over `%TEMP%`, HOME or a real prefix is ne
 
 - [Microsoft: preference variables, native argument passing and native error handling](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_preference_variables?view=powershell-7.5)
 - Local contract: `CLI-CONTRACT.md`; current evidence: `STATUS.md`.
+
+
+## 0.1.7 extension — deferred native execution
+
+The earlier handoff remains historical; run the current VERSION and parity harness,
+not historical expected counts. Add no-write dry-run/verbose stream tests; backup
+multi-ID/alias/literal -- selection and authorization; module show raw/JSON/browser;
+and provenance across apply, edit, save-as and restore. Verify malformed/pending
+state, active/source concurrent changes, symlink/junction/hardlink protections,
+and default-No confirmations in a disposable Windows root.
+
+EDITOR uses native quoted argv rules; test paths with spaces/backslashes/quotes,
+waiting GUI editors, atomic file replacement, cancellation and retained invalid
+work. Batch/shell editor launchers are refused with guidance to a native executable.
+Test PowerShell TabExpansion2 for backup IDs, module show, repeated operands,
+--fancy values and alias escaping without starting Python. Verify installed helper
+resolution and ownership under a temporary prefix. The source update and Termux
+fixtures do not certify any of these native Windows cases.

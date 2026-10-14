@@ -1,3 +1,539 @@
+# Blastoff 0.1.10 no-argument help follow-up — 2026-10-14
+
+Bare `blastoff`, `-h` and `--help` now produce identical full root help, exit 0
+and empty stderr. Global flags without a command also show full help; explicit
+`--json` retains the existing JSON welcome object. Invalid flags/values still
+fail. Arguments are parsed once before application imports, so implicit help
+does not initialize storage, inspect active configuration or launch tools.
+Both shell frontends retain the shared core. Branding and completion bytes are
+unchanged. The current 0.1.10 review identity is retained as requested.
+
+The starting checkout passed source verification (162 files); a separate baseline
+was preserved before editing. Existing tracked/untracked work and all historical
+evidence below are retained. Current README, contract, UX/quickstart, manual,
+changelog and implementation checklist describe the new behavior.
+
+## Verification
+
+Native Android 15 aarch64 / Termux; Python 3.14.6, Bash 5.3.20, Zsh 5.9.2,
+Fish 4.9.3. The focused help suite passed **15 tests in 20.383 seconds**.
+The full suite ran **266 tests in 214.540 seconds: 259 passed, seven skipped**:
+
+```sh
+BLASTOFF_TEST_ARCHIVE=<temporary-review-ZIP> BLASTOFF_TEST_STARSHIP=1 \
+  python3 -B -m unittest discover -s tests -v
+```
+
+Evidence: `test-termux-0.1.10-help.txt`. Coverage includes exact stdout/stderr/status
+equivalence, flags-only help, JSON compatibility, invalid arguments, import bounds,
+no application reads/writes/subprocesses, Bash forwarding, narrow/color PTYs and
+installed help after source relocation. The installed lifecycle used isolated
+prefixes and a synthetic 0.0.0 prior version, not an actual historical upgrade.
+Separate byte comparisons confirmed JSON welcome, version, nested help and JSON
+usage errors match the preserved baseline exactly.
+
+Bash/Zsh/Fish syntax, Python AST parsing, mandoc lint and diff-whitespace checks
+passed. Groff is unavailable. Seven skips cover three fzf cases, three native
+PowerShell cases and a Windows junction case. PowerShell parity cases now include
+bare/flags-only/JSON help, but the harness cannot run without pwsh. Native Windows,
+PowerShell and human visual acceptance remain unverified; manual acceptance remains
+paused at step 5. No real install/profile/config changes or Git publication occurred.
+
+## Startup and review artifacts
+
+60 samples after five warmups, alternating baseline/current order, no concurrent
+suite, isolated roots and redirected stdout. Command:
+
+```sh
+python3 -B scripts/benchmark.py --samples 60 \
+  --only python-bare --only python-help --only bash-bare --only bash-help \
+  --compare-root <preserved-source-baseline>
+```
+
+| Invocation | Before p50 / p95 ms | After p50 / p95 ms |
+|---|---:|---:|
+| Python, bare | 122.065 / 148.742 | 194.410 / 247.473 |
+| Python, help | 196.735 / 255.180 | 193.513 / 253.660 |
+| Bash, bare | 135.171 / 159.595 | 207.522 / 262.243 |
+| Bash, help | 204.425 / 264.013 | 206.697 / 284.382 |
+
+Raw evidence: `startup-termux-0.1.10-help.json`. Bare invocation now pays for full
+parser/help construction, adding about 72 ms median compared with the old compact
+welcome on this host; it is now comparable to explicit help. These are host-specific
+samples, not PowerShell timing or a speedup claim.
+
+Final source checksums and ZIP/TAR.GZ archives are regenerated after documentation
+and evidence edits. Source/extracted inventories, outer SHA-256 sums and repeat-build
+reproducibility are verified. New archives are in
+`/data/data/com.termux/files/usr/tmp/blastoff-help-review-j93am4ac/artifacts/`,
+separate from existing review archives; they are not installed or published.
+
+# Blastoff 0.1.10 theme-list checkpoint — 2026-10-14
+
+Shared theme-list formatting, available native checks, paired performance sampling
+and isolated package lifecycle verification are complete. Started from checksum-
+verified 0.1.9 (157 source files), preserving the full baseline outside the checkout
+and retaining all pre-existing tracked/untracked work and historical evidence.
+
+## Behavior and compatibility
+
+Human list/theme-list/-l/--list use dim purple source prefixes, bright-white names,
+and bold pink identified names/markers. Trusted provenance marks unchanged loaded
+bytes [current]; edits retain [last loaded; modified]. Changed/unavailable local
+sources, missing active content and unlisted origins are explicit. Unknown,
+invalid or pending tracking never guesses a source from the library. Save-as keeps
+last-loaded history independent from the save destination. Preset definitions are
+not regenerated to check matching. Concurrent stat changes suppress a current claim.
+
+Inspection reads the record, active config and at most one local source; it creates
+no files or subprocesses. Existing preset name discovery remains. JSON retains the
+same schema and skips identity inspection. Color controls, plain redirected output,
+empty results and preset diagnostics remain. Source-unreadability details go to
+verbose stderr without hiding choices. The shared core supplies both frontends.
+
+Help, manual, current guides, preferences/AGENTS, decision notes and planning records
+are reconciled. All three shell completion files and artwork files are byte-identical
+to the preserved baseline; no CLI syntax, dependency, storage, installer ownership
+or resource-layout changes were needed. Version identities are 0.1.10.
+
+## Native verification
+
+Host: Android 15 aarch64; Python 3.14.6, Bash 5.3.20, Zsh 5.9.2, Fish 4.9.3.
+A packaged disposable copy passed **261 tests in 197.677 seconds: 254 passed,
+seven skipped**. Evidence: test-termux-0.1.10.txt. Invocation:
+`BLASTOFF_TEST_ARCHIVE=<0.1.10-ZIP> BLASTOFF_TEST_PRIOR_SOURCE=<preserved-0.1.9-source>
+BLASTOFF_TEST_STARSHIP=1 python3 -B -m unittest discover -s tests -v`.
+
+The 13 new tests cover local/preset identity, same-name sources, equal-content
+copies, modified/save-as history, changed/deleted sources, missing/corrupt/future/
+pending state, linked active paths, unsafe source links, permission diagnostics,
+concurrent config/source/record/pending changes, read bounds, no writes, alias and
+dry-run equivalence, JSON bypass, color roles/resets/controls and native Bash PTY.
+The suite also passed existing backup safety, lifecycle, actual Bash/Zsh/Fish
+completion and help checks. Native shell syntax checks, Python compilation without
+bytecode, mandoc lint and diff-whitespace checks passed. Groff is unavailable.
+
+After extending the installed check to assert both list markers following source
+relocation, that test passed separately in **8.935 seconds**. Evidence:
+test-termux-0.1.10-archive.txt. It exercises an actual preserved 0.1.9 upgrade,
+repeat install, dry-run, installed helper/manual/completion resolution, uninstall
+and user-data retention entirely in disposable paths. Runtime bytes are unchanged
+from the full-suite run; subsequent edits were evidence/docs and this test extension.
+
+The seven skips are three fzf cases, three native PowerShell cases and a Windows
+junction case. PowerShell parity now includes human/plain/color/JSON listings and
+modified origins in paths with spaces and Unicode, but execution remains pending.
+Native Windows/PowerShell/WSL and human appearance are not certified by fixtures.
+
+## Performance
+
+60 samples after five warmups, alternating baseline/current order per sample, with
+no concurrent suite. Python and Bash launches are measured separately. The empty
+store used `scripts/benchmark.py --only python-list-human --only bash-list-human
+--compare-root <preserved-0.1.9-source>`, retaining normal preset-name discovery.
+Raw results: startup-termux-0.1.10-list.json.
+
+| Human list | 0.1.9 p50 / p95 ms | 0.1.10 p50 / p95 ms |
+|---|---:|---:|
+| Python, empty store | 247.956 / 294.924 | 252.281 / 279.513 |
+| Bash, empty store | 264.266 / 298.313 | 277.127 / 313.952 |
+| Python, 1,000 themes | 270.471 / 346.083 | 291.226 / 366.219 |
+| Bash, 1,000 themes | 283.323 / 362.080 | 298.528 / 387.788 |
+
+The populated fixture used 1,000 small TOML files, a tracked theme0, isolated
+storage/config, child-only empty PATH (no Starship), NO_COLOR=1 and redirected
+stdout. The same alternating method ran both absolute Python and Bash entrypoints;
+all fixture bytes/modes/mtimes remained unchanged. Method and raw samples:
+startup-termux-0.1.10-list-populated.json. Added median latency was 4.325–20.755 ms
+(about 1.7–7.7%); these are host-specific measurements, not a speedup claim or a
+native PowerShell timing result. The focused read-count test establishes constant
+content reads as the library grows; filename discovery still scales with the list.
+
+## Artifacts and review gates
+
+Final code/docs/evidence edits precede regeneration of source checksums and
+reproducible ZIP/TAR.GZ review archives. The source inventory, extracted inventories,
+outer SHA-256 sums and byte-for-byte reproducibility are verified at packaging.
+Artifacts: ../blastoff-rebuild-0.1.10.zip, ../blastoff-rebuild-0.1.10.tar.gz and
+../blastoff-rebuild-0.1.10.SHA256SUMS. These are local review builds, not published.
+
+Use the read-only source preview in TERMINAL-UX.md to review contrast and markers.
+Manual acceptance remains paused at step 5 (backup deletion); earlier passes and
+installation are not inferred. No live installation, configuration, profile or
+backup-data changes, commit, tag or publication were performed. The checkpoints
+below preserve their original evidence.
+
+# Blastoff 0.1.9 readability checkpoint — 2026-10-14
+
+Shared-core formatting, available native validation, performance checks and
+review archive verification are complete.
+Source began at verified 0.1.8 (153 inventory files), with 53 modified tracked
+files and 44 untracked status entries. A complete source baseline was preserved
+outside the checkout; existing work and historical records remain intact.
+
+## Change and compatibility
+
+Backup records have complete bright-white IDs, purple labels, bright-pink values,
+dim neutral separators, blank record separators and two-space metadata indentation.
+Size moves to its own line when the unstyled Kind/Size row does not fit. Source,
+Reason, missing-file notices, sorted ordering, counts, errors and statuses remain.
+Recognized ID timestamps are explicitly UTC (the writer uses gmtime); unknown
+values stay unknown. Exact byte sizes reuse inspection data. Shared token output
+sanitizes text before trusted ANSI; App.status and ordinary emit callers retain
+their existing appearance. JSON bypasses human formatting and retains its schema.
+
+Updated AGENTS/preferences, output contract, UX/quickstart/README, manual examples,
+interactive checks, plans, changelog and current release/path identities. Help
+syntax and all completion definitions are unchanged and verified. No new resources,
+dependencies, installer rules or data migrations are required. Runtime identities
+are 0.1.9; installing is a separate user action, not a side effect of source edits.
+
+## Native verification
+
+Host: Android 15 aarch64, Python 3.14.6, Bash 5.3.20, Zsh 5.9.2, Fish 4.9.3.
+Final suite in a packaged disposable source: **248 tests in 132.665 seconds;
+241 passed, seven skipped**. Log: test-termux-0.1.9.txt. Invocation:
+`BLASTOFF_TEST_ARCHIVE=<0.1.9-ZIP> BLASTOFF_TEST_PRIOR_SOURCE=<preserved-0.1.8-source>
+BLASTOFF_TEST_STARSHIP=1 python3 -B -m unittest discover -s tests -v`.
+
+Nine focused output tests passed, including a real native Bash PTY, exact role
+colors/resets and ANSI-stripped equivalence, automatic TTY/redirect, forced color,
+NO_COLOR, complete 96-character IDs, record ordering/spacing, precise width
+boundaries, very narrow screens, leap/invalid dates under different TZ settings,
+missing/malformed entries, exact sizes, unchanged JSON and fixture snapshots.
+Human/JSON paths use equal metadata-read/regular-file inspection counts; listing
+starts no presentation subprocesses. Source/Reason control text cannot inject ANSI.
+
+The suite also passed actual Bash/Zsh/Fish completion and help checks, backup/data
+safety regressions, a real 0.1.8 to 0.1.9 isolated upgrade, installed helpers after
+source relocation and uninstall retention. Bash/Zsh/Fish syntax, mandoc lint,
+Python compilation without bytecode and diff-whitespace checks passed. Branding
+and completion bytes match the preserved baseline.
+
+The seven skips are three fzf cases, three PowerShell engine/session/lifecycle
+cases and one Windows-junction case. The populated PowerShell parity harness now
+compares human/JSON listings at 80 and 24 columns, but native execution is pending.
+Groff is unavailable; mandoc was used. Human appearance is not certified by PTYs.
+
+## Performance
+
+60 samples after five warmups, alternating baseline/current order each sample;
+no concurrent test suite. `scripts/benchmark.py --only python-backup-list-human
+--only bash-backup-list-human --compare-root <preserved-0.1.8-source>` used isolated
+empty storage and redirected output. Raw results: startup-termux-0.1.9-backup-list.json.
+
+| Entry | 0.1.8 p50 / p95 ms | 0.1.9 p50 / p95 ms |
+|---|---:|---:|
+| Python | 160.884 / 169.692 | 161.859 / 169.609 |
+| Bash | 168.813 / 175.333 | 170.664 / 177.093 |
+
+These empty-list medians differ by about 0.6% and 1.1%; they are host-specific
+startup observations, not a general performance guarantee.
+A separate Python-entry comparison used 20 disposable backups of 6,056 bytes each,
+valid UTC IDs and Source/Reason metadata, width 80 and forced color (NO_COLOR removed
+only in the child environment). It also alternated order for 60 samples after five
+warmups, with no competing tests. Baseline p50/p95: **243.976/279.065 ms**; current:
+**247.723/270.157 ms**. Median increased 1.5% (3.747 ms); p95 decreased 8.908 ms.
+The fixture bytes/modes/mtimes remained unchanged. Raw method/results are in
+startup-termux-0.1.9-backup-populated.json. No native PowerShell timing is claimed.
+
+## Review artifacts and remaining gates
+
+Version identities are aligned at 0.1.9. Source checksums, ZIP/TAR.GZ extracted
+inventories and outer SHA-256 sums verified; archives reproduce byte-for-byte.
+The final archive-based install/actual-0.1.8-upgrade/source-relocation/uninstall
+check passed separately: one test in 5.032 seconds, recorded in
+test-termux-0.1.9-archive.txt. It ran only in disposable roots. Final evidence
+bookkeeping is followed by checksum/archive regeneration and verification;
+runtime/test bytes match the source that passed the full suite.
+
+Local review artifacts: ../blastoff-rebuild-0.1.9.zip,
+../blastoff-rebuild-0.1.9.tar.gz and ../blastoff-rebuild-0.1.9.SHA256SUMS.
+These are local review builds, not a tag or published release.
+
+Manual acceptance remains paused at step 5; earlier steps and a live review
+installation are not assumed passed. Use the read-only source-preview command in
+TERMINAL-UX.md, including --color never and resizing. Native PowerShell/Windows/WSL,
+fzf and human visual gates remain separate and pending where unavailable.
+No live installation, configuration, profile or backup changes, commit, tag or
+publication were performed. The checkpoints below retain their original evidence.
+
+# Blastoff 0.1.8 review follow-up — 2026-10-13
+
+Implementation, available native validation and review archives are complete.
+Manual acceptance remains paused at **step 5, backup deletion**. Steps 1–4 and
+installation of a review build are not assumed passed. No live installation,
+profile/config changes, commit, tag or publication was performed.
+
+## Implemented and reconciled
+
+- Fancy Unicode is the shared default for theme, module and backup browsers;
+  --fzf requests basic user presentation. Preserve ASCII, Ctrl-X, responsive source
+  previews, safe selection/cancellation and frozen backup deletion scope.
+- Correct fzf hex-color option parsing and retain reviewed environment/file
+  customization. Bat now retains normal configuration, theme overrides and custom
+  cache discovery. Fixture and real-tool-configuration appearance checks are
+  distinct; no prompt rendering/theme command execution is introduced.
+- Human output is explicit across commands, including compact backup metadata.
+  JSON remains opt-in with unchanged schemas; diagnostics use stderr, raw content
+  stays raw, and redirected human output does not become JSON.
+- PowerShell 7+ uses the shared core, a private argv envelope and deferred native
+  tool discovery. Import/static completion starts no external tools. Dynamic
+  completion is bounded/cached; Unix hosts lacking UnixMode use a private bounded
+  Python filename helper. No PowerShell 5.1 or native Windows test claim is made.
+- Root install.ps1/uninstall.ps1 provide WhatIf/DryRun/Verbose, CurrentUser module
+  discovery, exact profile plans, backups, immutable versions and independent
+  ownership. Both lifecycle frontends share transaction/preflight helpers.
+- Reconciled AGENTS/preferences/pi workflows, README/quickstart, contracts,
+  installation/migration/recovery, platform/parity/interactive/troubleshooting
+  guides, decisions, plans, help, four completions, manual, changelog and identities.
+  Historical records are retained; SOURCE-AUDIT links to the current inventory.
+
+Work began on main at 74414be with **49 modified tracked and 19 untracked files**,
+source 0.1.7 and a verified 128-file inventory. A complete baseline was preserved
+outside the checkout. The then-PATH launcher reported 0.1.6; no live upgrade was
+performed. Existing work, .local references and branding/artwork bytes remain.
+
+Confirmed application defects were bat configuration suppression, the fzf lexer's
+handling of embedded # color values, and the shared emitter's implicit JSON
+fallback. Separately, the old HOME/XDG test isolation could hide user tool settings
+and theme caches; NO_COLOR and installed/source identity affect appearance too.
+Native fzf is absent here, so its version-specific behavior and the user's actual
+palette remain unverified. See TERMINAL-UX.md for fixture versus user-mode checks.
+
+## Native evidence
+
+Host: Android 15 aarch64, Python 3.14.6, Bash 5.3.20, Zsh 5.9.2, Fish 4.9.3,
+Starship 1.26.0 and bat 0.26.1. Gum/mandoc are available; fzf/pwsh/groff are absent.
+
+Final suite in a refreshed packaged disposable source copy: **242 tests in
+153.643 seconds: 235 passed, seven skipped**. Full output: test-termux-0.1.8.txt.
+Command: `BLASTOFF_TEST_ARCHIVE=<0.1.8-ZIP>
+BLASTOFF_TEST_PRIOR_SOURCE=<preserved-0.1.7-source> BLASTOFF_TEST_STARSHIP=1
+python3 -B -m unittest discover -s tests -v`.
+
+Passed real 0.1.7 to 0.1.8 isolated shell-prefix upgrade, installed helper/runtime
+resolution after source relocation, three native completions, uninstall retention,
+CurrentUser backend clean/repeat/upgrade/repair/conflict/uninstall and frontend
+coexistence. The latter tests execute Python on Termux, not native PowerShell.
+Safety cases include cancellation/default No, malformed state, concurrent edits,
+locks, symlink hazards, spaces/Unicode, missing tools, clean JSON/stderr, no-write
+dry-run snapshots, profile encoding/content retention and modified ownership.
+Skipped: three fzf cases, PowerShell completion plus two native-session/lifecycle
+adapter cases, and one Windows-junction case. Real Starship preset generation and
+native bat fixture checks ran; no live prompt/custom theme commands were executed.
+
+Available shell syntax, Python source compilation without bytecode, mandoc lint
+and diff-whitespace checks passed. Native Bash/Zsh/Fish completion behavior and
+native bat custom config/cache fixtures are exercised by the suite; fixtures never
+rebuild user caches or change live data. Native PowerShell/session/lifecycle tests
+are implemented but skipped here, not claimed as execution evidence.
+
+An initial final-validation run found an outdated minimal packaging fixture that
+omitted the new required PowerShell payload. Its 242-test result (one failure,
+seven skips) is preserved in test-termux-0.1.8-initial.txt. The fixture was corrected;
+all seven focused packaging tests then passed. This was not an installer failure.
+
+## Performance evidence
+
+Each ordinary case used 60 samples after five warmups with isolated empty roots,
+NO_COLOR and redirected output, without a concurrent test suite. Preserve the
+initial sequential before/after measurements in startup-termux-0.1.8-before.json
+and startup-termux-0.1.8-after.json. Device timings varied substantially, so the
+follow-up alternated current/baseline and reversed order each sample using
+`scripts/benchmark.py --compare-root <preserved-0.1.7-source>`.
+Raw results: startup-termux-0.1.8-paired.json.
+
+| Command | 0.1.7 p50 / p95 ms | 0.1.8 p50 / p95 ms |
+|---|---:|---:|
+| python-version | 105.643 / 185.133 | 110.504 / 298.246 |
+| python-help | 222.653 / 465.358 | 230.684 / 509.652 |
+| python-current | 298.294 / 540.447 | 297.716 / 561.375 |
+| python-module-list | 287.270 / 380.806 | 295.716 / 394.453 |
+| bash-version | 115.199 / 129.532 | 114.144 / 128.703 |
+| bash-help | 271.424 / 348.479 | 272.497 / 342.697 |
+| bash-current | 258.859 / 310.830 | 256.892 / 323.303 |
+| bash-module-list | 246.365 / 303.592 | 244.592 / 303.478 |
+| python-backup-list-human | 298.552 / 376.763 | 295.972 / 358.172 |
+| bash-backup-list-human | 249.620 / 292.931 | 255.696 / 289.685 |
+
+Backup-list timings compare the old JSON default with the new human default and
+therefore are not identical-format workloads. Common medians in the paired run
+remained within 5%; tail samples were noisy. Python-version p95 initially rose to
+298.246 ms from 185.133 ms. A focused, noncompeting 120-sample alternating recheck
+(`--only python-version --samples 120`) measured **61.956 / 76.725 ms** current
+versus **63.066 / 76.205 ms** baseline, recorded in
+startup-termux-0.1.8-version-recheck.json. The tail spike did not reproduce; this
+supports host/scheduling variability as an explanation, not a universal speed claim.
+
+The 1,000-theme feature run (60 samples/five warmups, separate from tests) is in
+startup-termux-0.1.8-features.json. Picker option parsing p50/p95: 0.152/0.183 ms;
+first plain in-process preview: 43.619/50.051 ms; cached preview: 0.098/0.104 ms.
+Python save dry-run: 249.094/404.330 ms; Bash: 301.099/457.976 ms. The fixture
+snapshot remained unchanged. Native bat startup is covered functionally, not by
+these plain-preview measurements. PowerShell import, fresh-process startup,
+first-command and completion timings remain **unmeasured** here; the separate
+benchmark-powershell.ps1 harness includes empty/1,000/10,000-name libraries.
+
+## Packaging and remaining gates
+
+Version identities are 0.1.8 throughout the core, manifest, manual and changelog.
+The source inventory/checksums, ZIP and TAR.GZ archives and outer SHA-256 sums
+were regenerated after code/documentation edits and verified after extraction.
+Both archives reproduce byte-for-byte. Final evidence bookkeeping is followed by
+another regeneration and verification; no source edits are left outside checksums.
+
+The archive-based isolated shell install/actual-0.1.7-upgrade/uninstall check also
+passed separately (one test, 9.994 seconds; test-termux-0.1.8-archive.txt). An
+extracted archive's CurrentUser Python backend passed verified no-write planning,
+install, installed-core invocation, source relocation and installed-backend
+uninstall with profile/config retention. This is native Termux Python evidence,
+not execution of the PowerShell adapters. Final runtime/test bytes match the
+passed full-suite source; later edits only record results and inventories.
+
+Review artifacts are `../blastoff-rebuild-0.1.8.zip`,
+`../blastoff-rebuild-0.1.8.tar.gz` and `../blastoff-rebuild-0.1.8.SHA256SUMS`.
+They are local review archives, not a tag or published release.
+
+- Native fzf configuration/version behavior, connected borders, Ctrl-X/resizing,
+  backup multiselection and actual user bat/fzf appearance remain pending.
+- Native Windows PowerShell, Linux PowerShell and WSL execution/version ranges,
+  profile discovery/encoding/ACL/reparse/locking behavior, GUI editor waiting,
+  cancellation and fresh-session completion/performance remain distinct gates.
+- Human visual acceptance remains pending. Follow INTERACTIVE-CHECKS.md from
+  step 5 after recording source/installed identity; earlier steps keep their own
+  evidence. No rendered prompt preview is implemented or claimed.
+
+The following 0.1.7 and older checkpoints are historical. Their basic-default,
+bat-isolation and prior support descriptions are superseded by CLI-CONTRACT.md,
+POWERSHELL.md and decision 0003. Their original test records remain unchanged.
+
+# Blastoff 0.1.7 checkpoint — 2026-10-13
+
+## Implemented scope
+
+The 0.1.7 review build implements shared verbose/dry-run, safe backup deletion,
+staged active-theme editing, independent provenance and interactive save,
+basic/fancy fzf presentation with Ctrl-X source previews, and stored module
+viewing. Bash and PowerShell continue forwarding to one Python 3.11+ standard-
+library core. No new runtime dependencies or storage migrations were introduced.
+Reference/logo assets, storage paths, root install/uninstall interface and owned-
+file/data-retention protections remain intact.
+
+The version-1 tracking record separates last-loaded history from a save destination.
+Pending markers prevent incomplete operations authorizing implicit overwrites.
+Content/state publication is not a multi-file crash transaction; failed editor
+work is retained at a reported path. See CLI-CONTRACT.md, RECOVERY.md and decision
+0002 for the precise failure and concurrent-change contract.
+
+Updated README/quickstart, CLI/help/manual, all four completions, installation/
+upgrade/uninstall/migration guidance, recovery, interactive/Windows checks,
+architecture, preferences, agent/pi workflow instructions, implementation plan,
+changelog and release identities. Old results below and old audit/benchmark logs
+remain historical. This section supersedes older exact-match-only identification,
+required save-name, default styled picker, Alt-P/hidden-preview and blanket fzf
+option-isolation descriptions. Rendered prompt previews are deliberately excluded;
+only sanitized source is shown and no theme-defined commands are executed.
+
+## Native evidence
+
+Host: Android 15 aarch64, Python 3.14.6, Bash 5.3.20, Zsh 5.9.2, Fish 4.9.3,
+Starship 1.26.0, bat 0.26.1 and Neovim 0.12.6. Gum and mandoc are available;
+fzf, pwsh and groff are absent.
+
+- Final runtime/tests in a packaged disposable source copy: **221 tests in
+  108.066 seconds: 216 passed, 5 skipped**. Command: `BLASTOFF_TEST_ARCHIVE=<ZIP>
+  BLASTOFF_TEST_PRIOR_SOURCE=<actual preserved 0.1.6 source>
+  BLASTOFF_TEST_STARSHIP=1 python3 -B -m unittest discover -s tests -v`.
+  Full output: `test-termux-0.1.7.txt`. Runtime/scripts/tests match the working tree;
+  evidence/documentation bookkeeping follows the test run before final packaging.
+- Passed cancellation/default-No and case variants, alias/literal scope, frozen
+  all-selection, missing/malformed/linked backup members, simulated active-file
+  identity alias, partial unlink failure, editor invalid/failure/interruption and
+  atomic-save recovery, concurrent config/destination/tracking changes, missing
+  tools, paths with spaces, noninteractive gates and dry-run snapshots including
+  directory/file modes, mtimes, bytes and provenance. Termux Python lacks os.link;
+  the new backup identity test simulates identity, not a native hardlink operation.
+- Passed actual Bash/Zsh/Fish completion behavior, shell PTYs and safe fallback
+  picking; source/helper subprocess quoting and session cache tests; native bat
+  color/plain/no-pager handling and a real headless Neovim edit in an isolated PTY.
+  All real Starship presets were generated/applied in temporary roots without
+  rendering prompts. PowerShell completion source guards pass; engine is skipped.
+- Isolated actual 0.1.6 to 0.1.7 upgrade passed. Installed commands, preview helpers,
+  provenance, module display, backup deletion, three native completions and manual
+  work after source relocation. Uninstall preserves config, linked storage, themes,
+  modules, backups, provenance and unrelated files. Public lifecycle planning,
+  dry-run, immutable runtime, ownership/conflict and recovery tests also pass.
+- Python source compilation without bytecode writes, individual Bash syntax checks
+  (entry point, legacy/public lifecycle wrappers and completion), Zsh/Fish syntax,
+  `mandoc -Tlint man/blastoff.1` and `git diff --check` passed. Groff is unavailable.
+- Initial validation exposed old backup-list error-schema assertions and a logo
+  fixture inheriting TERM=dumb. Assertions now cover per-entry errors/stderr and
+  the logo fixture specifies a Unicode terminal. All final checks above passed.
+
+## Performance evidence
+
+Ran the preserved 0.1.6 benchmark, then current `scripts/benchmark.py`, sequentially
+without a competing test suite. Each command has 60 samples after 5 warmups,
+isolated empty roots, NO_COLOR and redirected output. PowerShell is unavailable.
+Raw host/results: `startup-termux-0.1.7-before.json` and
+`startup-termux-0.1.7-after.json`.
+
+| Entry/command | 0.1.6 p50 / p95 ms | 0.1.7 p50 / p95 ms |
+|---|---:|---:|
+| python-version | 53.825 / 58.504 | 51.330 / 54.362 |
+| python-help | 130.774 / 152.209 | 132.603 / 164.424 |
+| python-current | 152.880 / 187.723 | 157.388 / 188.450 |
+| python-module-list | 153.861 / 200.783 | 152.507 / 168.134 |
+| bash-version | 64.142 / 67.747 | 64.375 / 67.333 |
+| bash-help | 139.950 / 177.231 | 143.322 / 177.338 |
+| bash-current | 162.611 / 200.785 | 167.448 / 194.518 |
+| bash-module-list | 162.417 / 202.435 | 163.859 / 203.888 |
+
+Common-command median regressions stayed within 3% in this run; these are single-
+host observations, not a general speedup or strict latency guarantee. The separate
+`--features` run uses 1,000 background local themes plus the tracked save target:
+Python save dry-run p50/p95 173.460/218.397 ms, Bash 180.888/227.220 ms; module show
+Python 162.435/194.944 ms, Bash 171.995/220.325 ms. All fixture bytes were unchanged.
+See `startup-termux-0.1.7-features.json`. A focused save test rejects any library
+scan. Existing explicit current matching retains its compatibility scan; ordinary
+provenance/save work reads only named files. Shared helpers load once per process,
+and previews generate/cache visited presets on demand with bounded output/cache.
+
+## Final packaging and remaining gates
+
+All **128 source files** verify against the regenerated CHECKSUMS.json. ZIP,
+tar.gz and outer SHA-256 sums reproduce byte-for-byte in a second temporary output
+directory; both extracted archives pass verify.py. Final artifacts are
+`../blastoff-rebuild-0.1.7.{zip,tar.gz,SHA256SUMS}`. The separate final-archive
+installed lifecycle test passes using the actual 0.1.6 source. Public install and
+uninstall --dry-run --verbose pass with isolated HOME/PATH/prefix and create no
+HOME/prefix files. Runtime/scripts/tests/completion bytes match the full-suite
+validation copy. This final evidence/checklist edit is followed by package
+regeneration and the same source/archive/reproducibility checks.
+
+The documentation consistency review covers command grammar, aliases, defaults,
+confirmation authority, editor rules, dry-run/verbose streams, keybindings, version
+identities, support claims and completion contexts. Final documentation contract
+checks and manual/shell syntax checks pass. No rendered-prompt implementation or
+human/native-Windows verification is claimed.
+
+Native Windows/PowerShell execution remains deferred. Three native fzf tests,
+one PowerShell engine test and one Windows junction test were skipped. Fzf basic/
+fancy selection, multi-selection, preview resizing/Ctrl-X and actual inherited
+option compatibility still need a real installed fzf; fixture/static tests do not
+certify that executable. Human Unicode/ASCII appearance, touch keyboard, GUI-editor
+waiting and shell-plugin integration remain unverified. Use INTERACTIVE-CHECKS.md
+and WINDOWS-CHECKS.md for those gates. No new native Linux gate was run here.
+
+Work remains uncommitted on main, based on 74414be. No live install, profile/PATH,
+active config or user storage changes, dependency installation, commit, tag, push
+or publication were performed. All mutation/lifecycle tests used temporary roots.
+
+---
+
+Historical checkpoints below retain their original results and versions.
+
 # Blastoff rebuild checkpoint — 2026-10-01
 
 ## Implemented

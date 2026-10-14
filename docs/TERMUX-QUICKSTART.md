@@ -3,7 +3,7 @@
 Termux has prior native validation; current installer results belong in STATUS.md.
 Native Windows remains deferred. The user reported a working installation and
 37 migrated themes; the agent has not updated that live installation. Review
-[the update plan](TERMUX-INSTALL-PLAN.md) for 0.1.6: `bash install.sh --dry-run`,
+[the update plan](TERMUX-INSTALL-PLAN.md) for 0.1.10: `bash install.sh --dry-run`,
 then `bash install.sh` when wanted. Native Termux defaults to `$PREFIX` and public
 install migrates verified legacy `~/.local` ownership. Native discovery is preferred;
 custom prefixes may need owned profile hooks. Linked profiles are never rewritten.
@@ -51,8 +51,8 @@ from the repository root.
   mkdir -p "$sandbox/config space"
   printf '[directory]\nstyle = "purple"\n' > "$STARSHIP_CONFIG"
 
-  bo                                   # branded welcome, no discovery
-  bo --version                         # blastoff 0.1.6
+  bo                                   # full help, identical to -h/--help
+  bo --version                         # blastoff 0.1.10
   bo doctor --json                     # config/storage point inside sandbox
   bo list                              # local themes + available Starship presets
   bo theme save daily                  # snapshot current config as daily
@@ -88,9 +88,9 @@ check your installed preset list rather than assume all versions have it.
 
 For everyday use after default installation, invoke `"$PREFIX/bin/blastoff"`
 (or your actual custom-prefix command) with the same arguments, **without** sandbox
-overrides. Until migration, a legacy installation may still be under `~/.local`. On this machine
-`STARSHIP_CONFIG` currently selects `~/dots/config/starship/starship.toml`;
-applying/loading/restoring would then change that real file. First run `doctor
+overrides. Until migration, a legacy installation may still be under `~/.local`. A historical observation used
+`~/dots/config/starship/starship.toml`; recheck the actual active path rather than
+assuming that observation is current. First run `doctor
 --json`, save a named theme and create a backup. Do not infer the destination
 from the storage directory: `BLASTOFF_HOME` controls storage only.
 
@@ -108,12 +108,34 @@ Quote paths with spaces. Names are portable ASCII letters/digits, `_` and `-`,
 up to 96 characters; names start with a letter/digit and Windows device names
 are excluded. No custom Starship commands are run by validation.
 
-Fzf now shows a purple/pink selector with local:/preset: labels. Its pane is a
-**configuration preview**, not a rendered Starship prompt: no theme-defined
-commands are run. Alt-P toggles the preview, which moves below the list on narrow
-screens and starts hidden in short terminals. Gum/numbered fallbacks have clear
-labels/instructions but no preview pane. `NO_COLOR` or `--color never` removes
-color; no Nerd Font is needed.
+Bare `pick` uses fancy Unicode; `pick --fzf` or `pick fzf` uses compatible
+FZF_DEFAULT_OPTS_FILE/FZF_DEFAULT_OPTS without a Blastoff palette.
+`pick --fancy` keeps purple/pink connected Unicode borders; use `--fancy ascii` for
+ASCII. Ctrl-X toggles the initially visible TOML preview, which moves below when
+a right pane cannot hold 60 columns and responds to resizing. Bat is optional;
+plain source works without it. No prompt/custom commands execute. Gum/numbered
+fallbacks have labels but no pane. NO_COLOR and --color never suppress colors.
+
+`theme edit --dry-run` reports the active target and selected editor. Actual
+`theme edit` backs up and edits a working copy; valid unchanged-baseline results
+publish atomically, failed/conflicted work remains at a reported recovery path.
+Editor order: nonempty EDITOR, nvim, vim, vi, code, nano. Quoted editor paths and
+arguments work without eval. Use wait arguments for unrecognized GUI editors.
+`theme save` asks `Save edits to "<theme>"? [y/as/N]` for a known unchanged local
+destination. Use y/yes, a/as for save-as, or Enter/no to cancel. The confirmation
+replaces --force for that identified theme. Presets/unknown/changed origins need
+save-as. `current` distinguishes last-loaded history from current matches.
+
+`module show NAME` views saved TOML without loading; redirected output is raw TOML.
+`module show` opens an fzf browser. `backup delete --pick` supports Tab/Shift-Tab;
+`backup delete ID1 ID2` or `--all` shows the frozen set/count and asks [y/N].
+`backup delete --all --dry-run` writes nothing. Noninteractive deletion needs
+explicit IDs/--all and --yes. Bare all and trailing y/yes are aliases; after --
+they are literal IDs. Both config and stored-file backups are included. Deletion
+is permanent; read [recovery guidance](RECOVERY.md) before removing snapshots.
+
+Every mutation supports --dry-run; -v/--verbose reports diagnostics on stderr.
+No dry-run launches an editor/picker or changes provenance.
 
 Picker selection applies a theme. Cancellation exits 130 without changing
 config/storage: Escape/Ctrl-C in fzf/gum; blank Enter, Escape then Enter, Ctrl-D
@@ -138,3 +160,13 @@ Use `--backend numbered` instead if that is your intended everyday backend
 (blank Enter cancels). The complete optional gum/Escape/narrow-width and
 shell-plugin checklist remains in [INTERACTIVE-CHECKS.md](INTERACTIVE-CHECKS.md);
 this small check does not claim those remaining human checks passed.
+
+Backup listing in 0.1.9 separates records with blank lines and distinguishes IDs,
+labels and values by color. Size moves below Kind on narrow screens. Plain output
+keeps the same layout; --json retains its schema. See TERMINAL-UX.md for a read-only
+source preview and illustrative output.
+
+In 0.1.10, `bo list` uses quieter source prefixes and highlights `[current]` or
+`[last loaded; modified]` beside the tracked theme. An unknown origin is not guessed;
+use `bo current` for explicit local matching. Source-only visual review commands
+are in [TERMINAL-UX.md](TERMINAL-UX.md#theme-list-readability--0110).

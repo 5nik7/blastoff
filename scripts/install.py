@@ -110,7 +110,7 @@ def payload(prefix):
                 continue
             if source.is_file():
                 pending[version_root/source.relative_to(ROOT)] = (core.read(source), 0o755 if source.suffix == '.sh' or source == ROOT/'bin/blastoff' else 0o644)
-    for name in ('install.sh', 'uninstall.sh'):
+    for name in ('install.sh', 'uninstall.sh', 'install.ps1', 'uninstall.ps1'):
         pending[version_root/name] = (core.read(ROOT/name), 0o755)
     if os.name != 'nt':
         bash = shutil.which('bash')
@@ -129,17 +129,18 @@ def payload(prefix):
 
 
 class Plan:
-    def __init__(self, action, prefix, doc):
+    def __init__(self, action, prefix, doc, *, manifest=None, lock=None, backup_root=None):
         self.action, self.prefix, self.doc = action, prefix, doc
         self.current = doc['version'] or 'not installed'
-        self.manifest = manifest_path(prefix)
+        self.manifest = manifest if manifest is not None else manifest_path(prefix)
+        self.backup_root = backup_root if backup_root is not None else prefix/'share/blastoff/profile-backups'
         self.writes = {}
         self.removes = set()
         self.expected = {}
         self.profiles = set()
         self.notes = []
         self.rows = []
-        self.locks = {prefix/'share/blastoff/.install.lock'}
+        self.locks = {lock if lock is not None else prefix/'share/blastoff/.install.lock'}
         self.migration = None
         self.new_doc = None
         self.skip = False
@@ -184,7 +185,7 @@ def backup_profile(plan, path, data):
     if not before:
         return
     key = digest(str(path).encode())[:16]+'-'+digest(before)
-    backup = plan.prefix/'share/blastoff/profile-backups'/(key+'.bak')
+    backup = plan.backup_root/(key+'.bak')
     known = plan.doc.get('backups', {})
     serial = 0
     while core.exists(backup) and known.get(str(backup)) != digest(before):
@@ -350,6 +351,20 @@ def replace(path, data, mode, expected):
     os.chmod(path, mode)
 
 
+def preflight(plan):
+    """Read-only conflict checks shared by both public lifecycle frontends."""
+    if plan.writes or plan.removes or plan.migration:
+        for lock in plan.locks:
+            if core.exists(lock):
+                raise core.Failure('Another operation or stale lock exists: '+str(lock)+'; inspect before removing it.')
+        for path in set(plan.writes) | plan.removes | {plan.manifest}:
+            parent = path.parent
+            while not core.exists(parent):
+                parent = parent.parent
+            if not os.access(parent, os.W_OK | os.X_OK):
+                raise core.Failure('Destination parent is not writable: '+str(parent)+'; choose a writable destination or fix permissions.')
+
+
 def apply(plan):
     if plan.skip or (plan.action == 'uninstall' and plan.doc['version'] is None):
         return
@@ -446,6 +461,7 @@ def run(argv=None):
         parser.set_defaults(public=False)
     parser.add_argument('--prefix', help='destination: native Termux PREFIX, otherwise a writable user prefix')
     parser.add_argument('--yes', action='store_true', help=argparse.SUPPRESS if public else 'approve legacy entry-point operations')
+    parser.add_argument('-v', '--verbose', action='store_true', help='detailed planned actions on stderr')
     parser.add_argument('--dry-run', action='store_true', help='preview only; no files will change')
     parser.add_argument('--version', action='version', version='blastoff '+core.VERSION)
     parser.add_argument('--color', choices=['auto', 'always', 'never'], default='auto')
@@ -457,16 +473,11 @@ def run(argv=None):
     if prefix == Path(prefix.anchor):
         raise core.Failure('Refusing filesystem root as installation prefix', 2)
     plan = make_plan(args.action, prefix, args.public)
-    if plan.writes or plan.removes or plan.migration:
-        for lock in plan.locks:
-            if core.exists(lock):
-                raise core.Failure('Another operation or stale lock exists: '+str(lock)+'; inspect before removing it.')
-        for path in set(plan.writes) | plan.removes | {plan.manifest}:
-            parent = path.parent
-            while not core.exists(parent):
-                parent = parent.parent
-            if not os.access(parent, os.W_OK | os.X_OK):
-                raise core.Failure('Destination parent is not writable: '+str(parent)+'; choose a writable --prefix or fix permissions.')
+    preflight(plan)
+    if args.verbose:
+        for reason, target in plan.rows:
+            safe = ''.join(c if c.isprintable() else ascii(c)[1:-1] for c in str(target))
+            print('blastoff: debug: '+reason+' '+safe, file=sys.stderr)
     output = Output(args.color)
     output.show(plan, args.dry_run)
     if args.dry_run:

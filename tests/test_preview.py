@@ -49,7 +49,7 @@ class Preview(unittest.TestCase):
 
     def test_bounds_colors_and_untrusted_index(self):
         out=preview.format_preview('local:alpha',b'[directory]\nstyle="purple"\n'+b'# x\n'*20000,True)
-        self.assertIn('\x1b[',out)
+        self.assertNotIn('\x1b[',out)  # no bat: plain fallback
         self.assertIn('truncated',out)
         self.assertLessEqual(len(out.splitlines()),207)
         for index in ('../x','0;touch marker','-1','999999999','\u0660'):
@@ -86,10 +86,10 @@ class Preview(unittest.TestCase):
     def test_layout_and_color_policy(self):
         narrow=ui.fzf_args(40,18,False,'sh -c','fixed {1}')
         self.assertIn('--color=bw',narrow)
-        self.assertIn('--preview-window=down,50%,border-top,hidden,wrap',narrow)
-        self.assertIn('--bind=alt-p:toggle-preview',narrow)
-        wide=ui.fzf_args(100,30,True,'sh -c','fixed {1}')
-        self.assertIn('--preview-window=right,55%,border-left,wrap',wide)
+        self.assertIn('--preview-window=right,60%,border-left,wrap,<60(down,45%,border-top,wrap)',narrow)
+        self.assertIn('--bind=ctrl-x:toggle-preview',narrow)
+        wide=ui.fzf_args(100,30,True,'sh -c','fixed {1}',fancy='unicode')
+        self.assertIn('--preview-window=right,60%,border-left,wrap,<60(down,45%,border-top,wrap)',wide)
         self.assertTrue(any('#ff43bf' in arg for arg in wide))
 
     @unittest.skipUnless(os.name=='posix' and shutil.which('fzf') and shutil.which('bash'), 'native fzf and PTY required')
@@ -107,18 +107,56 @@ class Preview(unittest.TestCase):
         before={str(p):p.read_bytes() for p in store.rglob('*') if p.is_file()}
         for columns,rows,keys,ready,followup in [
             (50,28,b'\x03',b'CONFIGURATION PREVIEW',None),
-            (40,16,b'\x1bp',b'local:alpha',(b'CONFIGURATION PREVIEW',b'\x03')),
+            (40,16,b'\x18\x18\x03',b'CONFIGURATION PREVIEW',None),
         ]:
             code,out=terminal([shutil.which('bash'),str(ROOT/'bin/blastoff'),'pick'],env,
-                              keys,ready,columns=columns,rows=rows,followup=followup)
+                              keys,ready,columns=columns,rows=rows,followup=followup,resize=(b'CONFIGURATION PREVIEW',120,30))
             self.assertEqual(code,130,repr(out[-2000:]))
             self.assertIn(b'CONFIGURATION PREVIEW',out)
             self.assertEqual(self.config.read_bytes(),b'x=1\n')
             self.assertEqual(before,{str(p):p.read_bytes() for p in store.rglob('*') if p.is_file()})
             self.assertEqual(list(temp.iterdir()),[])
 
+    @unittest.skipUnless(shutil.which('bat'), 'native bat unavailable')
+    def test_native_bat_and_plain_fallback(self):
+        data=b'[directory]\nstyle="purple"\n'
+        env=dict(os.environ,HOME=str(self.root),XDG_CACHE_HOME=str(self.root/'cache'),BAT_PAGER='must-not-run',BAT_OPTS='--paging=always')
+        with patch.dict(os.environ,env,clear=True):
+            plain=preview.format_preview('module:alpha',data,False,shutil.which('bat'))
+            colored=preview.format_preview('module:alpha',data,True,shutil.which('bat'))
+        self.assertIn('[directory]',plain);self.assertNotIn('\x1b',plain)
+        self.assertIn('\x1b[',colored);self.assertIn('purple',colored)
+        self.assertEqual(preview.highlight('x=1\n',False,str(self.root/'absent-bat')),'x=1\n')
+        self.assertFalse((self.root/'cache').exists())
+
     def test_symlink_source_refused(self):
         try: (self.themes/'alpha.toml').symlink_to(self.config)
         except OSError: self.skipTest('symlink unavailable')
         self.assertIn('Preview unavailable',preview.render(str(self.session),'0'))
         self.assertEqual(self.config.read_bytes(),b'x=1\n')
+
+class BatInheritance(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('bat'),'bat unavailable')
+    def test_config_environment_and_custom_cache(self):
+        with tempfile.TemporaryDirectory(prefix='blastoff bat fixture ') as directory:
+            root=Path(directory);config=root/'configuration';config.mkdir();(config/'themes').mkdir()
+            shutil.copy2(ROOT/'tests/fixtures/bat/BlastoffFixture.tmTheme',config/'themes/BlastoffFixture.tmTheme')
+            path=config/'config';path.write_text('--theme=BlastoffFixture\n--paging=always\n')
+            env=dict(os.environ,HOME=str(root),XDG_CONFIG_HOME=str(root/'xdg'),XDG_CACHE_HOME=str(root/'xdg-cache'),BAT_CONFIG_DIR=str(config),BAT_CONFIG_PATH=str(path),BAT_CACHE_PATH=str(root/'cache'),COLORTERM='truecolor')
+            env.pop('NO_COLOR',None);env.pop('BAT_THEME',None)
+            bat=shutil.which('bat')
+            subprocess.run([bat,'cache','--build'],env=env,capture_output=True,check=True,timeout=10)
+            body='[directory]\nstyle="purple"\n'
+            with patch.dict(os.environ,env,clear=True):
+                custom=preview.highlight(body,True,bat)
+                self.assertIn('\x1b[',custom)
+                self.assertIn('18;171;205',custom)
+                os.environ.pop('BAT_CONFIG_PATH')
+                self.assertEqual(custom,preview.highlight(body,True,bat))
+                os.environ['BAT_THEME']='ansi'
+                other=preview.highlight(body,True,bat)
+                self.assertNotEqual(custom,other)
+                plain=preview.highlight(body,False,bat)
+                self.assertNotIn('\x1b',plain);self.assertEqual(plain,body)
+            # Custom cache was created only in the fixture, never rebuilt live.
+            self.assertTrue((root/'cache/themes.bin').is_file())

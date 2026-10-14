@@ -1,3 +1,5 @@
+# Compatibility prefix bridge. For CurrentUser module/profile integration use
+# the root install.ps1 / uninstall.ps1 with -WhatIf; see docs/POWERSHELL.md.
 # Invoke with: ./scripts/install.ps1 install --prefix "$HOME/.local" --yes
 $entry = Join-Path $PSScriptRoot 'install.py'
 if ($env:BLASTOFF_PYTHON) { & $env:BLASTOFF_PYTHON -I $entry @args }

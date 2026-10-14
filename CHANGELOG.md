@@ -1,5 +1,55 @@
 # Changelog
 
+## 0.1.10 — theme-list identity and contrast
+
+- Show identical full help for bare blastoff, -h and --help. Global flags without
+  a command also show help; explicit JSON retains the existing welcome object.
+- Dim local:/preset: prefixes and highlight names using shared Blastoff accents.
+- Identify current tracked themes; retain modified origins and report changed or
+  unavailable sources without guessing from a full library scan.
+- Keep JSON unchanged, inspection read-only, and both frontends on the shared core.
+- Update list help, documentation, tests and review artifacts; actual native and
+  human acceptance evidence remains in STATUS.md.
+
+## 0.1.9 — backup-list readability
+
+- Distinguish backup IDs, labels, values and separators with shared accents.
+- Separate records and move Size to its own line on narrow terminals.
+- Parse known timestamps as UTC and reuse inspected exact byte sizes.
+- Preserve JSON, plain output, diagnostics, metadata and read-only behavior.
+- Update output guidelines, examples and validation evidence; native PowerShell
+  and human appearance remain separate acceptance gates.
+
+## 0.1.8 — review follow-up
+
+- Fancy Unicode is the shared browser default; --fzf / pick fzf select basic user
+  presentation. Preserve ASCII, responsive Ctrl-X previews and safe multiselection.
+- Fix unquoted fzf hex-color parsing and bat config/theme/cache inheritance;
+  distinguish isolated fixtures from real-configuration appearance checks.
+- Make readable human output explicit throughout, including backup metadata;
+  JSON remains opt-in with stable schemas and stderr diagnostics.
+- Add PowerShell argv transport, bounded offline completion and root CurrentUser
+  install/uninstall with WhatIf, profile backups and independent owned resources.
+- Add native-session/lifecycle/performance harnesses and reconcile project surfaces.
+  Actual results and unavailable native/human gates are recorded in STATUS.md.
+
+
+## 0.1.7 — editing, provenance and backup cleanup
+
+- Add verbose stderr diagnostics and no-write dry-run across core mutations.
+- Track last-loaded origin independently from exact matches; interactive theme
+  save uses y/as/N, validates destination baselines and supports local save-as.
+- Add staged theme editing with editor selection/waiting, pre-edit backups,
+  concurrent-change checks and retained failed/invalid work.
+- Add permanent backup deletion by IDs, frozen all-set or fzf multi-selection,
+  default-No confirmation, explicit noninteractive authorization and alias escaping.
+- Make basic fzf the default; preserve reviewed user options, offer fancy Unicode/
+  ASCII styling, responsive visible Ctrl-X previews and bat/plain source display.
+- Add read-only module show/browser; update all four completions, help, manual,
+  lifecycle payload verification and current/historical documentation boundaries.
+- Native Windows remains deferred. Rendered prompt samples are deliberately absent;
+  native fzf and human visual results must be read from STATUS.md, not inferred.
+
 ## 0.1.6 — linked dotfiles storage
 
 - Allow the storage root and its ancestors to be directory links, including

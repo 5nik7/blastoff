@@ -10,8 +10,8 @@ Do not apply one project's measured budgets or approval policy to every project.
 | Area | Preference | Concrete consequence |
 |---|---|---|
 | Order of priorities | Fast and safe first | Protect existing data; benchmark common paths; avoid unnecessary process launches. |
-| Output | Colorful output | Compact, readable human display; useful theme names and source labels. |
-| Shells | Bash, Zsh and Fish completion | Ship all three and verify real completion behavior. |
+| Output | Human by default, colorful when appropriate | Redirected output stays human; JSON is explicit, raw content stays raw, diagnostics use stderr. |
+| Shells | Bash, Zsh, Fish and PowerShell completion | Ship all four; verify available engines and defer unavailable native checks explicitly. |
 | Documentation | Man page and good docs/planning | Help, man page, examples, architecture, contract, implementation plan and status. |
 | Lifecycle | Install and uninstall | Versioned, explicit, per-user installation and owned-file removal. |
 | Version | Versioned command/module | One release number, `--version`, changelog, package/checksum identity. |
@@ -21,7 +21,7 @@ Do not apply one project's measured budgets or approval policy to every project.
 | Listing | Local themes and `starship preset --list` | Separate source groups; preserve same-name local themes. |
 | Interaction | Pretty listing, possibly fzf/gum picker | Optional interactive picker, with useful fallback. |
 | Operations | Copy, save as, delete and back up | Explicit commands, collision rules, recoverable changes. |
-| Modules | Save/load individual stored modules | Independent snippet directory; valid TOML and precise replacement. |
+| Modules | Save/load/show individual stored modules | Independent snippet directory; valid TOML, precise replacement and read-only viewing. |
 | Agent setup | Good pi planning, docs and skills | Repo instructions, workflow skills, prompts and tested handoff. |
 | Architecture choice | Shared core selected in this conversation | Python 3.11+ standard library; Bash and PowerShell frontends. |
 
@@ -56,8 +56,10 @@ claim about what every future project must use.
 - **Git discipline.** Preserve unrelated changes, inspect remotes/refs, keep
   changes reviewable, and avoid force-pushing main or tags/history rewrites.
 - **CLI ergonomics.** Useful help and diagnostics, completion, editor integration
-  when warranted, and practical fallbacks. For future edit commands, established
-  editor order is `$EDITOR`, then vim, vi, nano; do not invent an edit feature now.
+  when warranted, and practical fallbacks. The 0.1.7 edit requirement selects
+  nonempty `$EDITOR`, nvim, vim, vi, code, nano, with argument-safe waiting and
+  retained failed edits. All mutations support no-write dry-run; diagnostics go
+  to stderr. Provenance retains last-loaded history separately from matches.
 - **Broad implementation comfort.** Bash/Zsh/PowerShell, Python, Go, Rust, C,
   JavaScript, Lua and other tools are familiar. Familiarity is not a requirement
   to use a particular language in every project.
@@ -86,3 +88,18 @@ copy-on-apply, per-file atomic replacement, checksummed backups, safe portable
 names, explicit symlink conversion, cooperating-writer locks, conservative TOML
 module-layout support, static completions and checksum-owned uninstallation.
 Keep them reviewable; do not present them as preferences Nick explicitly stated.
+
+Fancy Unicode is the default browser; --fzf preserves compatible user styling.
+Respect normal bat theme/config/cache discovery. PowerShell root lifecycle and
+lightweight import/completion follow POWERSHELL.md; native gates stay explicit.
+
+## Field readability
+
+Use distinct colors for identifiers, labels, and values where that improves
+readability. Reuse the shared Blastoff accents, sanitize data before styling,
+reset each segment, and keep the same understandable layout without color.
+
+Keep source prefixes such as local: and preset: quieter than names: use the
+existing dim purple accent, high-contrast names, and pink for an identified theme.
+Keep textual current/last-loaded markers meaningful without color; edited origin
+history must never be presented as an exact current-content match.

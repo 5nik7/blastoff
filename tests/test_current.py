@@ -26,7 +26,7 @@ class CurrentOutput(Harness):
         before = self.snapshot()
         result = self.invoke('current')
         self.assertIn('Current configuration', result.stdout)
-        self.assertIn('MATCHES  blastoff', result.stdout)
+        self.assertRegex(result.stdout, r'MATCHES +blastoff')
         self.assertIn(str(self.config), result.stdout)
         self.assertIn('regular file', result.stdout)
         self.assertNotIn('matching_themes', result.stdout)
@@ -39,7 +39,7 @@ class CurrentOutput(Harness):
     def test_json_schema_is_unchanged_and_uncolored(self):
         self.sample()
         result = self.invoke('current', '--json', '--color', 'always')
-        self.assertEqual(json.loads(result.stdout), {
+        self.assertEqual({k:v for k,v in json.loads(result.stdout).items() if k != 'provenance'}, {
             'config': str(self.config), 'exists': True,
             'matching_themes': ['blastoff'], 'symlink': False,
         })
@@ -54,7 +54,7 @@ class CurrentOutput(Harness):
         self.assertIn('(no local match)', self.invoke('current').stdout)
         self.theme('zebra', self.config.read_text())
         self.theme('alpha', self.config.read_text())
-        self.assertIn('MATCHES  alpha, zebra', self.invoke('current').stdout)
+        self.assertRegex(self.invoke('current').stdout, r'MATCHES +alpha, zebra')
         self.assertEqual(json.loads(self.invoke('current', '--json').stdout)['matching_themes'], ['alpha', 'zebra'])
 
     @unittest.skipUnless(os.name == 'posix', 'POSIX symlink fixture')

@@ -5,48 +5,28 @@ extension, model change, provider change, global skill installation or service.
 The instructions are guidance for the agent; they are not filesystem isolation
 or an enforced permission boundary. Continue using isolated tests.
 
-## 1. Keep the rebuild package separate at first
+## 1. Continue in the current checkout
 
-Download/extract `blastoff-rebuild-0.1.0.zip` under a staging directory, e.g.
-`~/downloads`. The extracted root is `blastoff-rebuild/`.
-Do not extract it blindly over the existing repository.
+The shared-core rebuild is already integrated in
+`/data/data/com.termux/files/home/repos/blastoff`. Read VERSION, Git status,
+AGENTS.md, CLI-CONTRACT.md, IMPLEMENTATION-PLAN.md and STATUS.md before work.
+Do not repeat the historical 0.1.0 archive integration. Supplied/downloaded archives
+remain review sources, never permission to overwrite the checkout.
 
-Verify the downloaded archive's SHA-256 against `blastoff-rebuild-0.1.0.SHA256SUMS`,
-then verify its contents:
-
-```sh
-cd ~/downloads/blastoff-rebuild
-python3 scripts/verify.py
-python3 -m unittest discover -s tests -v
-```
-
-Python 3.11+ is required. This package does not install Python, Starship or pi.
-Check availability/version using your normal package manager and `python3
---version`, `starship --version`, `pi --version`; do not infer native support
-from a Linux test run. Use `py -3` in place of `python3` on Windows as appropriate.
-
-## 2. Start pi in the actual repository
+## 2. Start pi and choose an accepted slice
 
 ```sh
 cd /data/data/com.termux/files/home/repos/blastoff
 pi
 ```
 
-Paste this initial task (adjust the staging path if needed):
-
-> Read the existing repository guidance and inspect Git status first. Read
-> `~/downloads/blastoff-rebuild/AGENTS.md`, its programming-preferences guide,
-> CLI contract, implementation plan and status. Compare the supplied rebuild
-> against `.local/src` and `.local/logo` in this repo. Preserve all unrelated
-> changes and the original source/assets. Make an integration plan, then
-> integrate the shared-core Bash/PowerShell implementation and pi guidance in
-> bounded steps. Keep tests isolated; do not alter my active Starship config,
-> install into my real prefix, edit shell profiles, commit, push or publish.
-> Run the tests available on native Termux and update validation evidence.
-> Keep Windows/Fish gates pending until actually run in those environments.
-
-If the repository already has `AGENTS.md` or `.pi` files, merge useful content;
-never replace existing project rules or settings without examining them.
+Ask it to continue the accepted incomplete slice, preserve unrelated work and
+reference assets, use temporary test roots, and reconcile code/help/completions/
+manual/docs. Record unrun native/human gates explicitly. No live installation,
+profile/config changes or Git publication is implied. Final package/checksum
+regeneration follows final edits. Existing skills/prompts below remain guidance,
+not permission or filesystem isolation. Historical package-audit evidence remains
+in SOURCE-AUDIT.md and TERMUX-AUDIT.md.
 
 ## 3. Project files pi can use
 
@@ -68,7 +48,7 @@ After integrating these project files, reload pi resources in the active session
 with `/reload`. Invoke a specific skill when needed:
 
 ```text
-/skill:blastoff-plan integrate the supplied rebuild
+/skill:blastoff-plan plan the next bounded change
 /skill:blastoff-safe-config review module-load failure behavior
 /skill:blastoff-parity validate native Termux completions
 /skill:blastoff-release check readiness without installing
@@ -102,3 +82,10 @@ Do not add third-party agent extensions until a specific need justifies them.
 
 These URLs may redirect as the upstream repository changes. Prefer the docs
 bundled with your installed pi version when behavior differs.
+
+## 0.1.8 follow-up
+
+The 0.1.8 workflow requires fancy-default/explicit --fzf browsers, bat inheritance,
+human output by default and explicit JSON. Root PowerShell lifecycle and startup
+checks are in POWERSHELL.md. Preserve the paused step-5 review and distinguish
+fixtures, native platform runs and human appearance. Never infer installation.

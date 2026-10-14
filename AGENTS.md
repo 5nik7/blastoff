@@ -10,7 +10,7 @@ for evidence and unfinished platform gates. Current user instructions win.
 2. Keep startup and common operations fast; measure instead of guessing.
 3. Match the Bash and native PowerShell command contract.
 4. Provide colorful, compact human output and clean machine output.
-5. Ship help, Bash/Zsh/Fish completion, man page, install/uninstall, version,
+5. Ship help, Bash/Zsh/Fish/PowerShell completion, man page, install/uninstall, version,
    changelog, checksums, tests and practical documentation together.
 
 The user selected one shared Python 3.11+ core with thin Bash/PowerShell entry
@@ -37,7 +37,8 @@ Never assume it represents main or copy it over existing work blindly.
   Keep linked storage children and active-config parent write protections strict.
 - Help, version, list, doctor and completions must not create files/directories.
 - Validate UTF-8 TOML before a mutation. Keep unrelated module settings intact.
-- Back up replaced/deleted content. Stage in the destination directory and
+- Back up replaced/deleted content (explicit backup delete permanently removes
+  its selected pairs; do not create backups of backups). Stage in the destination directory and
   replace atomically. Detect external edits, locks and unsafe destinations.
 - Never write through an active config symlink. Require `--replace-link` to
   record the old link and replace it; leave its target alone.
@@ -77,3 +78,40 @@ Rebuild checksums using `python3 scripts/package.py` after changes.
 Use `scripts/verify.py` to check the source archive before installing.
 Treat native Termux and native Windows runs as separate release gates.
 A Linux run or fake Starship fixture does not prove either gate.
+
+## 0.1.8 workflow
+
+Read docs/RECOVERY.md and decisions/0002-provenance-and-interactive-editing.md under
+docs for staged editing and provenance. Keep history separate from exact matches;
+a pending state marker cannot authorize implicit overwrite. Never discard failed
+editor output. Dry-run must not create locks, caches, backups or tracking data.
+Use fancy Unicode by default, explicit --fzf for user styling, and Ctrl-X source previews; never
+render a prompt as validation. Verify actual four-shell completion contexts.
+Reconcile commands, flags, defaults, prompts, examples, versions and support claims
+across all maintained docs before final checksum/package generation. Preserve
+historical evidence and leave native Windows/human visuals unverified until run.
+
+## Human output and PowerShell follow-up
+
+Ordinary commands default to readable human output, including when redirected.
+JSON requires explicit --json; keep schemas stable and stdout undecorated.
+Diagnostics/verbose go to stderr. Raw completion/TOML exceptions stay raw.
+Do not reintroduce a shared emitter that defaults to JSON without a human message.
+Preserve exported fzf/bat settings and custom bat caches; never source profiles or
+evaluate aliases to discover configuration. Fixture isolation and real-tool
+appearance checks are distinct. Manual acceptance is paused at backup deletion
+(step 5); preceding passes and a live review installation must not be inferred.
+Root PowerShell lifecycle uses CurrentUser ownership, WhatIf and the shared engine.
+Import/static completion must not launch tools or scan storage. See POWERSHELL.md
+under docs for the parity matrix, platform boundaries and separate native gates.
+
+## Field readability
+
+Use distinct colors for identifiers, labels, and values where that improves
+readability. Reuse the shared Blastoff accents, sanitize data before styling,
+reset each segment, and keep the same understandable layout without color.
+
+Keep source prefixes such as local: and preset: quieter than names: use the
+existing dim purple accent, high-contrast names, and pink for an identified theme.
+Keep textual current/last-loaded markers meaningful without color; edited origin
+history must never be presented as an exact current-content match.

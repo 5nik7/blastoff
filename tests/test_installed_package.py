@@ -44,16 +44,19 @@ class InstalledPackage(unittest.TestCase):
             run([sys.executable, installer, 'install', '--prefix', prefix, '--dry-run'])
             self.assertFalse(prefix.exists())
             version = (source/'VERSION').read_text().strip()
-            # Synthetic prior identity tests the immutable-version upgrade path,
-            # not compatibility certification of a historical release binary.
+            # Use an actual historical source when supplied; fallback is explicitly
+            # synthetic and only exercises immutable-version mechanics.
             prior = root/'prior source'
-            shutil.copytree(source, prior, ignore=shutil.ignore_patterns('__pycache__'))
-            (prior/'VERSION').write_text('0.0.0\n')
-            prior_core = prior/'lib/blastoff.py'
-            prior_core.write_text(prior_core.read_text().replace("VERSION = '"+version+"'", "VERSION = '0.0.0'"))
-            run([sys.executable, prior/'scripts/package.py', '--checksums-only'])
+            historical = os.environ.get('BLASTOFF_TEST_PRIOR_SOURCE')
+            shutil.copytree(historical or source, prior, ignore=shutil.ignore_patterns('__pycache__'))
+            prior_version = (prior/'VERSION').read_text().strip() if historical else '0.0.0'
+            if not historical:
+                (prior/'VERSION').write_text(prior_version+'\n')
+                for relative in ('lib/blastoff.py','powershell/blastoff.psd1','man/blastoff.1'):
+                    p=prior/relative; p.write_text(p.read_text().replace(version,prior_version))
+                run([sys.executable, prior/'scripts/package.py', '--checksums-only'])
             run([sys.executable, prior/'scripts/install.py', 'install', '--prefix', prefix, '--yes'])
-            old_core = prefix/'share/blastoff/versions/0.0.0/lib/blastoff.py'
+            old_core = prefix/'share/blastoff/versions'/prior_version/'lib/blastoff.py'
             old_bytes = old_core.read_bytes()
             run([sys.executable, installer, 'install', '--prefix', prefix, '--yes'])
             self.assertEqual(old_core.read_bytes(), old_bytes)
@@ -88,17 +91,25 @@ class InstalledPackage(unittest.TestCase):
             config.parent.mkdir(parents=True)
             original = b'[directory]\nstyle="purple"\n'
             config.write_bytes(original)
-            # Both fast welcome and fzf preview helpers resolve from installed
+            # Both fast help and fzf preview helpers resolve from installed
             # siblings after the extracted source tree has been moved away.
-            self.assertIn(b'BLASTOFF', run([command]).upper())
+            help_text = run([command, '--help'])
+            self.assertIn(b'Browse & choose', help_text)
+            for args in ([], ['-h'], ['--color', 'never']):
+                self.assertEqual(run([command, *args]), help_text)
             artwork = payload/'lib/artwork/logo'
             self.assertEqual(artwork.read_bytes(), (root/'unused source/lib/artwork/logo').read_bytes())
             from pty_support import terminal
-            code, screen = terminal([str(command), '-h'], dict(env, COLUMNS='60'), columns=60, rows=30)
+            code, screen = terminal([str(command), '-h'], dict(env, COLUMNS='60', TERM='xterm-256color', PYTHONIOENCODING='utf-8'), columns=60, rows=30)
             self.assertEqual(code, 0)
             self.assertIn('⣴⣦⣄'.encode(), screen)
             self.assertNotIn(b'{list,current', screen)
             run([command, 'theme', 'save', 'daily'])
+            run([command, 'theme', 'apply', 'daily'])
+            self.assertIn(b'local:daily  [current]', run([command, 'list']))
+            config.write_bytes(original+b'# edited fixture\n')
+            self.assertIn(b'local:daily  [last loaded; modified]', run([command, 'list']))
+            config.write_bytes(original)
             session = root/'preview session'; session.mkdir()
             (session/'choices.json').write_text(json.dumps({'choices':['local:daily'],
                 'themes':str(store/'themes'), 'color':False, 'starship':None}))
@@ -115,8 +126,16 @@ class InstalledPackage(unittest.TestCase):
             config.write_bytes(b'[directory]\nstyle="blue"\n')
             run([command, 'theme', 'apply', 'spare'])
             self.assertEqual(config.read_bytes(), original)
+            self.assertEqual(run([command,'module','show','directory-style']), original)
+            result=json.loads(run([command,'current','--json']))
+            self.assertEqual(result['provenance']['origin'],'local:spare')
+            snapshot={str(p):p.read_bytes() for p in real_store.rglob('*') if p.is_file()}
+            run([command,'backup','delete','--all','--dry-run'])
+            self.assertEqual(snapshot,{str(p):p.read_bytes() for p in real_store.rglob('*') if p.is_file()})
             run([command, 'module', 'load', 'directory-style'])
             run([command, 'backup', 'restore', backup_id])
+            run([command,'backup','delete',backup_id,'--yes'])
+            self.assertFalse((real_store/'backups'/(backup_id+'.json')).exists())
             self.assertEqual(config.read_bytes(), original)
 
             locations = {

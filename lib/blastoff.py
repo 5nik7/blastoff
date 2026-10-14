@@ -4,25 +4,43 @@ from __future__ import annotations
 import sys
 # Shipped UI helpers must not create bytecode during read-only commands.
 sys.dont_write_bytecode = True
-VERSION = '0.1.6'
+VERSION = '0.1.10'
+# Shared human-output accents; source text is sanitized before these are added.
+PURPLE = '38;2;138;12;233'
+PINK = '38;2;255;67;191'
+HUMAN_STYLES = {'id':'97', 'label':PURPLE, 'value':PINK, 'separator':'2',
+                'prefix':'2;'+PURPLE, 'selected':'1;'+PINK,
+                'list_heading':'1;38;2;235;10;101'}
+_UI_MODULES = {}
 
 def ui_module(module):
-    # Resolve shipped siblings even when Python runs in isolated (-I) mode.
+    # Resolve shipped siblings once per invocation, including isolated (-I) mode.
+    if module in _UI_MODULES:
+        return _UI_MODULES[module]
     import importlib.util
     from pathlib import Path
     spec = importlib.util.spec_from_file_location('blastoff_' + module, Path(__file__).with_name(module + '.py'))
     loaded = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(loaded)
+    _UI_MODULES[module] = loaded
     return loaded
 if sys.version_info < (3, 11):
     print('blastoff: Python 3.11+ is required', file=sys.stderr)
     raise SystemExit(3)
+# Decode only the private frontend boundary; ordinary Bash startup stays unchanged.
+if __name__ == '__main__' and sys.argv[1:2] == ['--_powershell-argv-v1']:
+    try:
+        arguments, shell = ui_module('argv_transport').decode(sys.argv[1:])
+        sys.argv[1:] = arguments
+        if shell:
+            import os
+            os.environ['BLASTOFF_NATIVE_PWSH'] = shell
+    except ValueError as error:
+        print('blastoff: '+str(error), file=sys.stderr)
+        raise SystemExit(3)
 # Keep version cheap and independent of files, Starship and optional tools.
 if __name__ == '__main__' and sys.argv[1:] == ['--version']:
     print('blastoff ' + VERSION)
-    raise SystemExit(0)
-if __name__ == '__main__' and not sys.argv[1:]:
-    ui_module('welcome').render(VERSION)
     raise SystemExit(0)
 _CLI = None
 def cli_module():
@@ -31,10 +49,12 @@ def cli_module():
         _CLI = ui_module('cli')
     return _CLI
 
-if __name__ == '__main__' and any(a in ('-h', '--help') for a in sys.argv[1:]):
+_STARTUP_ARGS = None
+if __name__ == '__main__':
     try:
-        # Argparse decides which parser's help applies, including literal '--'.
-        cli_module().parse(sys.argv[1:], VERSION)
+        # Parse once before application imports. Explicit and implicit help use
+        # the same parser; literal '--' and invalid options retain their meaning.
+        _STARTUP_ARGS = cli_module().parse(sys.argv[1:], VERSION)
     except cli_module().Failure as e:
         if '--json' in sys.argv:
             import json
@@ -86,7 +106,7 @@ def regular(p, links=False):
         s = p.stat() if links else p.lstat()
     except FileNotFoundError:
         raise Failure('File not found: ' + str(p))
-    if not stat.S_ISREG(s.st_mode):
+    if not stat.S_ISREG(s.st_mode) or (not links and getattr(s, 'st_file_attributes', 0) & 0x400):
         raise Failure('Refusing non-regular file: ' + str(p))
     return s
 
@@ -162,7 +182,7 @@ def storage_root(p):
     return resolve(p)
 
 
-def safe_parents(p):
+def inspect_parents(p):
     # Storage-root aliases are resolved separately; all remaining parents must
     # still be real directories, including children inside the storage root.
     for parent in [p, *p.parents]:
@@ -172,6 +192,8 @@ def safe_parents(p):
                 raise Failure('Refusing symlink/reparse directory for a write: ' + str(parent))
             if not stat.S_ISDIR(s.st_mode):
                 raise Failure('Not a directory: ' + str(parent))
+def safe_parents(p):
+    inspect_parents(p)
     p.mkdir(parents=True, exist_ok=True, mode=0o700)
 
 def fingerprint(p):
@@ -362,22 +384,40 @@ class App:
         self.backups = self.root / 'backups'
         self.config = path(os.environ.get('STARSHIP_CONFIG') or str(Path.home() / '.config/starship.toml'))
         self.color = not args.json and args.color != 'never' and 'NO_COLOR' not in os.environ and (args.color == 'always' or (sys.stdout.isatty() and os.environ.get('TERM') != 'dumb'))
-    def emit(self, result, message=None):
+    def diagnostic(self, message, level='debug'):
+        if level == 'debug' and not self.args.verbose:
+            return
+        safe = ''.join(c if c.isprintable() else ascii(c)[1:-1] for c in str(message))
+        if self.args.json:
+            print(json.dumps({'level':level, 'message':safe}), file=sys.stderr)
+        else:
+            print('blastoff: '+level+': '+safe, file=sys.stderr)
+    def accent(self, text, style):
+        return '\x1b['+style+'m'+text+'\x1b[0m' if self.color else text
+    def emit(self, result, message=None, *, styled_lines=None):
         if self.args.json:
             print(json.dumps(result, ensure_ascii=True, sort_keys=True))
+        elif styled_lines is not None:
+            rows = []
+            for tokens in styled_lines:
+                pieces = []
+                for text, role in tokens:
+                    safe = ''.join(c if c.isprintable() else ascii(c)[1:-1] for c in text)
+                    pieces.append(self.accent(safe, HUMAN_STYLES[role]) if role else safe)
+                rows.append(''.join(pieces))
+            print('\n'.join(rows))
         elif message is not None:
-            print(('\x1b[38;2;138;12;233m' if self.color else '') + message + ('\x1b[0m' if self.color else ''))
+            message = ''.join(c if c.isprintable() or c == '\n' else ascii(c)[1:-1] for c in message)
+            print(self.accent(message, PURPLE))
         else:
-            print(json.dumps(result, indent=2, sort_keys=True))
+            raise RuntimeError('Missing human output renderer')
     def status(self, title, fields):
-        def accent(text, style):
-            return '\x1b['+style+'m'+text+'\x1b[0m' if self.color else text
-        print(accent(title, '1;38;2;138;12;233'))
+        print(self.accent(title, '1;'+PURPLE))
         width = max(len(label) for label, _ in fields)+2
         for label, value in fields:
             # Do not replay controls/bidi from configured paths or tool names.
             safe_value = ''.join(c if c.isprintable() else ascii(c)[1:-1] for c in value)
-            print('  '+accent(label.ljust(width), '38;2;255;67;191')+safe_value)
+            print('  '+self.accent(label.ljust(width), PINK)+safe_value)
     def files(self, directory):
         if not directory.exists():
             return []
@@ -433,8 +473,11 @@ class App:
         safe_parents(self.backups)
         ident = time.strftime('%Y%m%dT%H%M%SZ', time.gmtime()) + '-' + uuid.uuid4().hex[:12]
         metadata = {'id':ident, 'kind':kind, 'source':str(source), 'sha256':hashlib.sha256(data).hexdigest(), 'symlink_target':os.readlink(source) if source.is_symlink() else None}
+        if kind == 'config':
+            metadata['provenance'] = self._backup_origin if hasattr(self, '_backup_origin') else ui_module('provenance').read_record(core_api(), self)[0]
         atomic(self.backups / (ident + '.toml'), data)
         atomic(self.backups / (ident + '.json'), (json.dumps(metadata, sort_keys=True)+'\n').encode())
+        self.diagnostic('Created '+kind+' backup '+ident)
         return ident
     def active_write(self, data, *, expected=...):
         parsed(data)
@@ -452,11 +495,13 @@ class App:
             backup = None
         atomic(self.config, data, before)
         return backup
-    def stored_write(self, target, data):
+    def stored_write(self, target, data, *, expected=...):
         parsed(data)
         if target.is_symlink():
             raise Failure('Refusing symlink destination: ' + str(target))
         before = fingerprint(target)
+        if expected is not ... and before != expected:
+            raise Failure('Destination changed during operation; refusing overwrite: '+str(target))
         if before is not None and not self.args.force:
             raise Failure('Destination exists; use --force to back it up and replace it: ' + str(target))
         backup = self.backup(target, 'stored') if before is not None else None
@@ -468,13 +513,20 @@ class App:
             if n not in self.presets():
                 raise Failure('Unknown preset: ' + n)
             data = self.starship(['preset', n]).encode()
+            self.loaded_source = {'kind':'preset', 'name':n}
         else:
             n = name(value[6:] if value.startswith('local:') else value)
             p = self.themes / (n + '.toml')
             if not exists(p) and not value.startswith('local:'):
                 return self.source('preset:' + n)
+            before = fingerprint(p)
             data = read(p)
+            if fingerprint(p) != before:
+                raise Failure('Source changed during read')
+            self.loaded_source = {'kind':'local', 'name':n, 'path':str(p), 'fingerprint':ui_module('provenance').serial(before)}
+        self.loaded_source['sha256'] = hashlib.sha256(data).hexdigest()
         parsed(data)
+        self.diagnostic('Validated source '+self.loaded_source['kind']+':'+n)
         return data
     def list(self):
         themes = [p.stem for p in self.files(self.themes)]
@@ -484,26 +536,40 @@ class App:
         if self.args.json:
             self.emit(result)
         else:
-            heading = '\x1b[1;38;2;235;10;101m' if self.color else ''
-            reset = '\x1b[0m' if self.color else ''
-            for title, values, prefix in [('THEMES', themes, 'local:'),('PRESETS', presets, 'preset:')]:
-                print(heading + title + reset)
+            identity = ui_module('provenance').list_identity(core_api(), self)
+            rows = []
+            identified = False
+            for title, values, kind in [('THEMES', themes, 'local'),('PRESETS', presets, 'preset')]:
+                rows.append([(title, 'list_heading')])
                 for n in values:
-                    print('  ' + prefix + n)
+                    selected = identity['identity'] == (kind, n)
+                    row = [('  ', None), (kind+':', 'prefix'), (n, 'selected' if selected else 'id')]
+                    if selected:
+                        row.append(('  ['+identity['marker']+']', 'selected'))
+                        identified = True
+                    rows.append(row)
                 if not values:
-                    print('  (unavailable)' if title == 'PRESETS' and discovery['status'] == 'unavailable' else '  (none)')
+                    rows.append([('  (unavailable)' if title == 'PRESETS' and discovery['status'] == 'unavailable' else '  (none)', None)])
+            if identity['identity'] and not identified:
+                kind, n = identity['identity']
+                rows.append([('Origin: ', 'label'), (kind+':', 'prefix'), (n, 'selected'),
+                             ('  ['+identity['marker']+'; not listed]', 'selected')])
+            if identity['note']:
+                rows.append([(identity['note'], None)])
+            self.emit(result, styled_lines=rows)
         return result
     def current(self):
         data = read(self.config, links=True) if exists(self.config) else None
         matches = [p.stem for p in self.files(self.themes) if data is not None and read(p) == data]
         result = {'config':str(self.config), 'exists':data is not None,
                   'matching_themes':matches, 'symlink':self.config.is_symlink()}
+        result['provenance'] = ui_module('provenance').status(core_api(), self, data)
         if self.args.json:
             self.emit(result)
             return
         match_text = ', '.join(matches) if matches else '(no local match)' if data is not None else '(no active config)'
         file_type = 'symlink' if result['symlink'] else 'regular file' if data is not None else 'not found'
-        self.status('Current configuration', [('MATCHES', match_text), ('CONFIG', str(self.config)), ('FILE', file_type)])
+        self.status('Current configuration', [('MATCHES', match_text), ('CONFIG', str(self.config)), ('FILE', file_type), ('LAST LOADED', result['provenance']['origin']), ('TRACKING', result['provenance']['status'])])
     def doctor(self):
         result = {'version':VERSION, 'python':sys.version.split()[0], 'config':str(self.config),
                   'blastoff_home':str(self.root), 'themes':str(self.themes), 'modules':str(self.modules),
@@ -525,6 +591,9 @@ class App:
     def pick(self):
         if self.args.json or not sys.stdin.isatty() or not sys.stdout.isatty():
             raise Failure('Picker requires an interactive terminal and human output', 2)
+        fzf = shutil.which('fzf')
+        if self.args.fzf and not fzf:
+            raise Failure('fzf is required for --fzf; install fzf or use ordinary pick for a fallback', 3)
         values = ['local:' + p.stem for p in self.files(self.themes)]
         presets, discovery = self.optional_presets()
         self.discovery_warning(discovery)
@@ -534,16 +603,18 @@ class App:
         # Ambient picker options can auto-accept, run previews/bindings, or start
         # a listener. This picker is deliberately names-only and user-confirmed.
         picker_env = {k:v for k,v in os.environ.items() if not k.startswith(('FZF_', 'GUM_'))}
-        if shutil.which('fzf'):
-            selected = ui_module('picker_ui').choose_fzf(values, self.themes, self.color, picker_env)
+        if fzf:
+            selected = ui_module('picker_ui').choose_fzf(values, self.themes, self.color, os.environ, fancy=self.args.fancy, diagnostic=self.diagnostic, executable=fzf)
             if selected is None:
                 raise Failure('Selection cancelled', 130)
             return selected
         elif shutil.which('gum'):
+            self.diagnostic('fzf unavailable; using Gum fallback', 'warning')
             if not self.color:
                 picker_env['NO_COLOR'] = '1'
             proc = subprocess.run(['gum', 'choose', '--header=BLASTOFF | Enter apply / Esc cancel\nlocal: stored | preset: Starship', '--cursor=> ', '--cursor-prefix=> ', '--selected-prefix=* ', '--unselected-prefix=  ', '--cursor.foreground=141', '--header.foreground=213', *values], text=True, stdout=subprocess.PIPE, env=picker_env)
         else:
+            self.diagnostic('fzf unavailable; using numbered fallback', 'warning')
             self.emit({}, 'BLASTOFF | local: stored / preset: Starship')
             print('Number + Enter applies; empty cancels.')
             for i, value in enumerate(values, 1):
@@ -563,7 +634,7 @@ class App:
         return selected
     def mutate(self):
         paths = [self.root / '.operation.lock']
-        if self.args.command in {'apply','pick','restore','module-load'}:
+        if self.args.command in {'apply','pick','restore','module-load','edit','active-save'}:
             paths.append(self.config.parent / ('.' + self.config.name + '.blastoff.lock'))
         return locks(paths)
 
@@ -578,14 +649,15 @@ def backup_metadata(p):
 
 normalize = cli_module().normalize
 
-def run(argv):
-    args = cli_module().parse(argv, VERSION)
+def run(argv, *, parsed_args=None):
+    args = parsed_args if parsed_args is not None else cli_module().parse(argv, VERSION)
     if args.command is None:
         ui_module('welcome').render(VERSION, args.color, args.json); return 0
     cmd = args.command
     if cmd == 'completion':
         print((Path(__file__).resolve().parent.parent / 'completions' / ('blastoff.' + args.shell)).read_text(), end=''); return 0
     app = App(args)
+    app.diagnostic('Storage: '+str(app.root)+'; active config: '+str(app.config))
     if cmd == 'doctor':
         app.doctor(); return 0
     if cmd == 'list' or (cmd == 'theme' and args.action == 'list'):
@@ -593,109 +665,22 @@ def run(argv):
     if cmd == 'current':
         app.current(); return 0
     if cmd == 'preset' and args.action == 'list':
-        values = app.presets(); app.emit({'presets':values}, '\n'.join(values)); return 0
+        values = app.presets(); app.emit({'presets':values}, '\n'.join(values) or 'No presets available'); return 0
     if cmd == 'module' and args.action == 'list':
-        values = [p.stem for p in app.files(app.modules)]; app.emit({'modules':values}, '\n'.join(values)); return 0
+        values = [p.stem for p in app.files(app.modules)]; app.emit({'modules':values}, '\n'.join(values) or 'No saved modules'); return 0
     if cmd == 'backup' and args.action == 'list':
-        entries = []
-        if app.backups.exists():
-            for p in sorted(app.backups.glob('*.json')):
-                entries.append(backup_metadata(p))
-        app.emit({'backups':entries}); return 0
-    # Resolve sources and validate before creating mutation directories/locks.
-    target = None; data = None
-    if cmd in ('theme','preset'):
-        action = args.action
-        if action == 'apply':
-            data = app.source(('preset:' if cmd=='preset' else '') + args.name); args.command = 'apply'
-        elif action == 'save':
-            target = app.themes / (name(args.name) + '.toml')
-            data = app.source('preset:' + args.source) if cmd=='preset' else read(app.config, links=True)
-        elif action == 'copy':
-            target = app.themes / (name(args.name) + '.toml'); data = app.source(args.source)
-        elif action == 'import':
-            target = app.themes / (name(args.name) + '.toml'); data = read(path(args.path))
-        elif action == 'delete':
-            target = app.themes / (name(args.name) + '.toml')
-    elif cmd == 'module':
-        if args.action == 'save':
-            route = module_path(args.module); stored_name = name(args.name or args.module.replace('.','-'))
-            target = app.modules / (stored_name + '.toml'); data = extract_module(read(app.config, links=True), route)
-            # A single root table is required for unambiguous later loading.
-            if snippet_route(data) != route:
-                raise Failure('Module must start with its own explicit table declaration; no files changed.')
-        elif args.action == 'load':
-            data = read(app.modules / (name(args.name) + '.toml')); snippet_route(data); args.command = 'module-load'
-        elif args.action == 'delete':
-            target = app.modules / (name(args.name) + '.toml')
-    elif cmd == 'backup' and args.action == 'restore':
-        ident = name(args.id)
-        meta = backup_metadata(app.backups / (ident + '.json'))
-        if meta.get('kind') != 'config':
-            raise Failure('Only config backups can be restored to the active config; use theme import for stored-theme backups, or inspect and copy stored-module backups to a new module file.')
-        data = read(app.backups / (ident + '.toml'))
-        if hashlib.sha256(data).hexdigest() != meta.get('sha256'):
-            raise Failure('Backup checksum mismatch')
-        args.command = 'restore'
-    elif cmd == 'pick':
-        data = app.source(app.pick())
-    if data is not None:
-        parsed(data)
-    if target is not None and args.action == 'delete' and not args.force:
-        raise Failure('Delete requires --force; a recoverable backup is created first.', 2)
-    with app.mutate():
-        backup = None
-        if args.command in ('apply','pick','restore'):
-            backup = app.active_write(data)
-            app.emit({'config':str(app.config), 'backup':backup}, 'Active config updated' + ('; backup ' + backup if backup else ''))
-        elif args.command == 'module-load':
-            # Preserve the baseline from before the read/merge, not just staging.
-            before = fingerprint(app.config)
-            active = read(app.config, links=True) if before is not None else b''
-            backup = app.active_write(merge_module(active, data), expected=before)
-            app.emit({'config':str(app.config),'backup':backup}, 'Module loaded' + ('; backup ' + backup if backup else ''))
-        elif target is not None:
-            if args.action == 'delete':
-                safe_parents(target.parent)
-                before = fingerprint(target)
-                if target.is_symlink():
-                    raise Failure('Refusing symlink destination')
-                # Compare file identity, not path spelling: Windows junction
-                # targets may use an extended-length namespace (\\\\?\\).
-                try:
-                    active_file = app.config.samefile(target)
-                except FileNotFoundError:
-                    active_file = False
-                if active_file:
-                    raise Failure('This stored file is the active config or its symlink target; select a separate active config path before deleting it.')
-                backup = app.backup(target, 'stored')
-                if fingerprint(target) != before:
-                    raise Failure('File changed during operation; refusing delete')
-                safe_parents(target.parent)
-                target.unlink()
-            else:
-                backup = app.stored_write(target, data)
-            app.emit({'path':str(target),'backup':backup}, str(target) + ('; backup ' + backup if backup else ''))
-        elif cmd == 'backup':
-            backup = app.backup(app.config, 'config'); app.emit({'backup':backup}, backup)
-        elif cmd == 'migrate':
-            source = path(args.path)
-            if not source.is_dir():
-                raise Failure('Legacy theme directory not found: ' + str(source))
-            files = app.files(source)
-            pending = [(app.themes / p.name, read(p)) for p in files]
-            for dest, content in pending:
-                parsed(content)
-                if exists(dest):
-                    raise Failure('Migration destination exists: ' + str(dest) + '; resolve collisions first. No themes copied.')
-            for dest, content in pending:
-                app.stored_write(dest, content)
-            app.emit({'copied':[str(p) for p,_ in pending], 'source_preserved':True}, 'Copied ' + str(len(pending)) + ' themes; source preserved')
-    return 0
+        return ui_module('backups').listing(core_api(), app)
+    if cmd == 'module' and args.action == 'show':
+        return ui_module('operations').show_module(core_api(), app)
+    return ui_module('operations').run(core_api(), app)
+
+def core_api():
+    from types import SimpleNamespace
+    return SimpleNamespace(**globals())
 
 def main():
     try:
-        return run(sys.argv[1:])
+        return run(sys.argv[1:], parsed_args=_STARTUP_ARGS)
     except Failure as e:
         if '--json' in sys.argv:
             print(json.dumps({'error':str(e), 'code':e.code}), file=sys.stderr)
@@ -704,6 +689,12 @@ def main():
         return e.code
     except BrokenPipeError:
         return 0
+    except RuntimeError as e:
+        if '--json' in sys.argv:
+            print(json.dumps({'error':str(e), 'code':3}), file=sys.stderr)
+        else:
+            print('blastoff: '+str(e), file=sys.stderr)
+        return 3
     except (OSError, ValueError, UnicodeError) as e:
         if '--json' in sys.argv:
             print(json.dumps({'error':str(e), 'code':1}), file=sys.stderr)

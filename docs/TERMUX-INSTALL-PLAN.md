@@ -1,6 +1,6 @@
 # Termux installation / source update plan
 
-The 0.1.6 Battery-style installer is implemented; this plan is not evidence of a
+The 0.1.10 Battery-style installer is implemented; this plan is not evidence of a
 live installation or passing tests. The user previously reported a working
 installation, 37 migrated themes and 12 presets. Do not assume historical path
 observations still describe the live system. Native Windows remains deferred.
@@ -40,7 +40,7 @@ man blastoff
 ```
 
 Use the same explicit `--prefix /absolute/path` for review and installation if
-choosing a custom location. Expected source version: 0.1.6. Config, migrated
+choosing a custom location. Expected source version: 0.1.10. Config, migrated
 themes, modules and application backups remain untouched; applying a theme is a
 separate action. Try the sandbox in [TERMUX-QUICKSTART.md](TERMUX-QUICKSTART.md).
 
@@ -77,7 +77,7 @@ bash uninstall.sh
 If the source is gone, the default Termux installed wrapper is:
 
 ```sh
-bash "$PREFIX/share/blastoff/versions/0.1.6/uninstall.sh" --prefix "$PREFIX" --dry-run
+bash "$PREFIX/share/blastoff/versions/0.1.10/uninstall.sh" --prefix "$PREFIX" --dry-run
 ```
 
 Only verified owned files and exact owned profile blocks are removed. User data,
@@ -85,3 +85,26 @@ unrelated profile edits, original dotfile links/targets, recovery profile backup
 and empty directories remain. Modified owned files cause refusal. In-memory
 completion definitions can remain until a fresh shell. No live install, removal
 or real-profile change was performed by this documentation update.
+
+## 0.1.8 retained user state and verification
+
+The versioned payload includes operations, provenance, editor, backup and preview
+helpers beside the Python core. Ownership tracking covers these installed files;
+source-checkout removal must not break previews. Installation/uninstallation never
+creates or deletes application provenance under `<storage>/state/provenance`, or
+editor recovery directories beside the active config. These remain user data.
+No automatic migration is needed: old config backups remain readable with unknown
+origin when they lack provenance. Bat and fzf remain optional; no dependencies are
+installed. -v/--verbose shows detailed lifecycle actions on stderr.
+
+Rehearse 0.1.9 to 0.1.10 upgrades in temporary prefixes using the actual old source,
+then verify helper resolution, completions, manual/version and retained data after
+uninstall. Final checksums/packages follow final code and documentation edits.
+Native Windows and human visual checks remain separate gates in STATUS.md.
+
+## 0.1.8 follow-up
+
+Manual review remains paused at step 5 (backup deletion); preceding checks and
+review-build installation are not assumed passed. Follow INTERACTIVE-CHECKS.md.
+The shell installer leaves independently managed CurrentUser PowerShell imports
+alone; root PowerShell lifecycle is documented separately in POWERSHELL.md.
