@@ -1,6 +1,6 @@
 # Termux installation / source update plan
 
-The 0.1.10 Battery-style installer is implemented; this plan is not evidence of a
+The 0.1.11 Battery-style installer is implemented; this plan is not evidence of a
 live installation or passing tests. The user previously reported a working
 installation, 37 migrated themes and 12 presets. Do not assume historical path
 observations still describe the live system. Native Windows remains deferred.
@@ -40,7 +40,7 @@ man blastoff
 ```
 
 Use the same explicit `--prefix /absolute/path` for review and installation if
-choosing a custom location. Expected source version: 0.1.10. Config, migrated
+choosing a custom location. Expected source version: 0.1.11. Config, migrated
 themes, modules and application backups remain untouched; applying a theme is a
 separate action. Try the sandbox in [TERMUX-QUICKSTART.md](TERMUX-QUICKSTART.md).
 
@@ -77,7 +77,7 @@ bash uninstall.sh
 If the source is gone, the default Termux installed wrapper is:
 
 ```sh
-bash "$PREFIX/share/blastoff/versions/0.1.10/uninstall.sh" --prefix "$PREFIX" --dry-run
+bash "$PREFIX/share/blastoff/versions/0.1.11/uninstall.sh" --prefix "$PREFIX" --dry-run
 ```
 
 Only verified owned files and exact owned profile blocks are removed. User data,
@@ -97,7 +97,7 @@ No automatic migration is needed: old config backups remain readable with unknow
 origin when they lack provenance. Bat and fzf remain optional; no dependencies are
 installed. -v/--verbose shows detailed lifecycle actions on stderr.
 
-Rehearse 0.1.9 to 0.1.10 upgrades in temporary prefixes using the actual old source,
+Rehearse 0.1.10 to 0.1.11 upgrades in temporary prefixes using the actual old source,
 then verify helper resolution, completions, manual/version and retained data after
 uninstall. Final checksums/packages follow final code and documentation edits.
 Native Windows and human visual checks remain separate gates in STATUS.md.

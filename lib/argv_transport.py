@@ -5,7 +5,7 @@ import os
 
 FLAG = '--_powershell-argv-v1'
 
-def decode(arguments):
+def decode(arguments, *, aliases=True):
     if len(arguments) != 2 or arguments[0] != FLAG or len(arguments[1]) > 131072:
         raise ValueError('Invalid PowerShell argument envelope')
     try:
@@ -22,7 +22,7 @@ def decode(arguments):
     args = doc['argv'][:]
     # Compatibility aliases are command selectors, never arbitrary operands.
     index = 0
-    while index < len(args):
+    while aliases and index < len(args):
         word = args[index]
         if word == '--': break
         if word == '--color': index += 2; continue

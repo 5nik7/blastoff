@@ -1,3 +1,17 @@
+# 0.1.11 platform detection and frontend parity
+
+- [x] Shared read-only host classification, visible SYSTEM and native defaults
+- [x] MSYS2/Git Bash guidance and incompatible-runtime guards before writes
+- [x] Legacy PowerShell transport, runtime filtering and missing-Python status 3
+- [x] Native parity discovery, completion setup repair and expanded host/argv/state checks
+- [x] Current version/docs/man/changelog updated; historical evidence preserved
+- [x] Full suite, shell/manual checks, benchmarks and genuine 0.1.10 upgrade rehearsal
+- [x] Final evidence, checksums, reproducible packages and extracted verification
+
+PowerShell 7+ remains the contract. Native Windows/PowerShell/WSL and interactive
+gates are pending where unavailable. All lifecycle checks use temporary roots;
+no live installation, profile edits or Git publication are part of this work.
+
 # 0.1.10 no-argument help follow-up
 
 - [x] Shared parser handles bare/global-flags-only human help before application imports

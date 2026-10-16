@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.11 — installer host detection and frontend parity
+
+- Identify Termux, WSL, Linux, Windows and other hosts in lifecycle plans; use
+  native defaults and reject incompatible Bash/Python combinations before writes.
+- Recognize MSYS2/Git Bash and Cygwin at the Bash boundary and direct users to
+  the native PowerShell installer without launching it automatically.
+- Preserve exact legacy PowerShell installer arguments through the shared transport;
+  consistently reject batch runtime candidates and report missing Python with status 3.
+- Repair native completion test setup, run PowerShell parity from unittest when
+  available, and expand argument-mode, state, lifecycle and platform coverage.
+- Keep shared application JSON, storage and ownership formats unchanged. Native
+  Windows/PowerShell/WSL and interactive acceptance remain separate evidence gates.
+
 ## 0.1.10 — theme-list identity and contrast
 
 - Show identical full help for bare blastoff, -h and --help. Global flags without

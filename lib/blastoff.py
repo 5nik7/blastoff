@@ -4,7 +4,7 @@ from __future__ import annotations
 import sys
 # Shipped UI helpers must not create bytecode during read-only commands.
 sys.dont_write_bytecode = True
-VERSION = '0.1.10'
+VERSION = '0.1.11'
 # Shared human-output accents; source text is sanitized before these are added.
 PURPLE = '38;2;138;12;233'
 PINK = '38;2;255;67;191'

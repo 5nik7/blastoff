@@ -12,6 +12,7 @@ class ArgvTransport(ReleaseHarness):
         self.assertEqual(transport.decode(self.envelope(values))[0],values)
         self.assertEqual(transport.decode(self.envelope(['-list','--json']))[0],['--list','--json'])
         self.assertEqual(transport.decode(self.envelope(['theme','save','-list']))[0],['theme','save','-list'])
+        self.assertEqual(transport.decode(self.envelope(['-list','--json']),aliases=False)[0],['-list','--json'])
     def test_real_entry_and_json_errors(self):
         self.assertIn(core.VERSION,self.invoke(*self.envelope(['--version'])).stdout)
         result=self.invoke(*self.envelope(['--json','module','list']))

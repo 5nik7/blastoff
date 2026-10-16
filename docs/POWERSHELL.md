@@ -1,4 +1,4 @@
-# PowerShell 7+ frontend and CurrentUser lifecycle — 0.1.10
+# PowerShell 7+ frontend and CurrentUser lifecycle — 0.1.11
 
 The module uses the same Python 3.11+ core as Bash. Native Windows needs neither
 Bash nor WSL. Implementation is shared; native Windows, Linux PowerShell, WSL and
@@ -40,6 +40,15 @@ checks occur only when their operation needs them. Native Windows previews use
 PowerShell 7 from the invoking host. Batch editor wrappers remain refused; select
 a native editor executable where required (see RECOVERY.md).
 
+Both explicit and discovered runtime candidates reject .cmd/.bat/.ps1 launchers.
+Missing Python returns status 3 in both Bash and PowerShell. The legacy prefix
+bridge `scripts/install.ps1` now uses the same resolver and versioned argument
+envelope, with installer arguments preserved literally instead of CLI alias
+rewriting. Its prefix ownership/layout remains separate from root install.ps1.
+Lifecycle plans display SYSTEM plus native platform identity; -Verbose adds the
+evidence and Python executable. MSYS2/Git Bash users are directed to this native
+PowerShell workflow, without automatic execution or path translation.
+
 ## Install and remove
 
 From a reviewed source archive with current CHECKSUMS.json:
@@ -65,7 +74,7 @@ unambiguous CurrentUser powershell.config.json PSModulePath is honored; ambiguou
 custom paths require -ModuleRoot. The first writable PSModulePath entry is never
 chosen arbitrarily. Unsafe linked/reparse write parents remain refused.
 
-The self-contained module is `<ModuleRoot>/blastoff/0.1.10/blastoff.psd1`, with the
+The self-contained module is `<ModuleRoot>/blastoff/0.1.11/blastoff.psd1`, with the
 nested module, Python runtime, preview/lifecycle helpers, artwork, completions,
 manual and docs beside it. Ownership is `<ModuleRoot>/blastoff/.blastoff/install.json`
 (format 3); recovery profile backups remain in `.blastoff/profile-backups`.
@@ -135,6 +144,11 @@ pwsh -NoProfile -File scripts/benchmark-powershell.ps1
 ```
 
 On Linux/WSL use `tests/parity.ps1 -AllowNonWindows` and label evidence accordingly.
+Unittest discovery runs that parity script when pwsh exists and explicitly skips
+it otherwise. The harness feeds the core exact arguments through an independent
+fixture decoder, checks literal forwarding in available native argument modes,
+and compares raw TOML and isolated mutation/provenance results. It does not
+mistake generated file fingerprints or fixture paths for frontend differences.
 The lifecycle harness uses explicit temporary ModuleRoot/ProfilePath. Record
 PowerShell 7.0/7.2/current separately, native argument mode, platform, optional tool
 versions, stderr/status and Ctrl-C behavior. Text parity does not promise binary
@@ -143,7 +157,7 @@ minimal temporary profile import, first command and cold/warm completion are
 separate benchmark cases; report actual p50/p95 and skips, not inferred Windows
 performance. See WINDOWS-CHECKS.md for retained native filesystem/interactive gates.
 
-Theme-list presentation in 0.1.10 is supplied entirely by the shared core, including
+Theme-list presentation since 0.1.10 is supplied entirely by the shared core, including
 quiet prefixes and current/modified origin markers. `tests/parity.ps1` compares
 plain, forced-color and JSON listings before and after a disposable active edit.
 Native PowerShell/Windows/WSL execution remains a separate unverified gate until run.

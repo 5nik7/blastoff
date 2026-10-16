@@ -74,7 +74,7 @@ class InstalledPackage(unittest.TestCase):
             lookup_env = dict(env, PATH=str(prefix/'bin')+os.pathsep+env['PATH'])
             self.assertEqual(run([shutil.which('bash'), '-c', 'command -v blastoff'],
                                  environment=lookup_env).decode().strip(), str(command))
-            run([command, '--version'], code=127,
+            run([command, '--version'], code=3,
                 environment=dict(env, BLASTOFF_PYTHON=str(root/'missing python')))
             doctor = json.loads(run([command, 'doctor', '--json']))
             self.assertEqual(doctor['config'], str(config))

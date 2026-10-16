@@ -76,6 +76,8 @@ function Invoke-BlastoffLifecycle {
         if ($LASTEXITCODE -ne 0) { $global:LASTEXITCODE=$LASTEXITCODE; return }
         $plan=($result -join "`n") | ConvertFrom-Json -ErrorAction Stop
         Write-BlastoffLifecycleText -Accent ('Blastoff '+$Action+' '+$plan.version+'; current: '+$plan.current)
+        Write-BlastoffLifecycleText ('SYSTEM: '+$plan.platform.label)
+        Write-Verbose (Write-BlastoffLifecycleText ('Detection: '+($plan.platform.evidence -join '; ')+'; Python executable: '+$plan.platform.python))
         Write-BlastoffLifecycleText ('Module destination: '+$plan.destination)
         if ($WhatIfPreference -or $DryRun -or $VerbosePreference -ne 'SilentlyContinue') {
             foreach ($row in $plan.actions) { Write-BlastoffLifecycleText ('  '+$row[0]+': '+$row[1]) }
@@ -88,6 +90,8 @@ function Invoke-BlastoffLifecycle {
             & $runtime @prefix -I -B $backend $Action --context $encoded --apply-token $plan.token
             $global:LASTEXITCODE=$LASTEXITCODE
         } else { $global:LASTEXITCODE=0 }
+    } catch [System.Management.Automation.PipelineStoppedException] {
+        $global:LASTEXITCODE=130
     } catch {
         $global:LASTEXITCODE=3
         [Console]::Error.WriteLine('blastoff lifecycle: '+$_.Exception.Message)

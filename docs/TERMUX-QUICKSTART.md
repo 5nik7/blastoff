@@ -3,7 +3,7 @@
 Termux has prior native validation; current installer results belong in STATUS.md.
 Native Windows remains deferred. The user reported a working installation and
 37 migrated themes; the agent has not updated that live installation. Review
-[the update plan](TERMUX-INSTALL-PLAN.md) for 0.1.10: `bash install.sh --dry-run`,
+[the update plan](TERMUX-INSTALL-PLAN.md) for 0.1.11: `bash install.sh --dry-run`,
 then `bash install.sh` when wanted. Native Termux defaults to `$PREFIX` and public
 install migrates verified legacy `~/.local` ownership. Native discovery is preferred;
 custom prefixes may need owned profile hooks. Linked profiles are never rewritten.
@@ -52,7 +52,7 @@ from the repository root.
   printf '[directory]\nstyle = "purple"\n' > "$STARSHIP_CONFIG"
 
   bo                                   # full help, identical to -h/--help
-  bo --version                         # blastoff 0.1.10
+  bo --version                         # blastoff 0.1.11
   bo doctor --json                     # config/storage point inside sandbox
   bo list                              # local themes + available Starship presets
   bo theme save daily                  # snapshot current config as daily

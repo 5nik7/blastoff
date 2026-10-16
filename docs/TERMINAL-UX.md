@@ -1,4 +1,4 @@
-# Terminal UX — 0.1.10
+# Terminal UX — 0.1.11
 
 Bare `blastoff`, `-h`, and `--help` produce identical full root help, exit 0,
 and empty stderr. Global flags without a command also show full help, except
@@ -90,7 +90,7 @@ Native Windows rendering/editor/preview behavior remains deferred.
 
 ## Updating an installed runtime
 
-The current version is 0.1.10; source edits alone do not upgrade an installation.
+The current version is 0.1.11; source edits alone do not upgrade an installation.
 After source/archive verification, review `bash install.sh --dry-run` and use
 `bash install.sh` only when a real upgrade is wanted. Native Termux defaults to
 PREFIX; custom prefixes and ownership/profile safeguards remain unchanged.

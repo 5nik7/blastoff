@@ -126,7 +126,8 @@ class Packaging(unittest.TestCase):
                          'scripts/install.sh', 'install.sh', 'uninstall.sh', 'bin/blastoff',
                          'install.ps1','uninstall.ps1','powershell/runtime.ps1',
                          'scripts/powershell_install.py','scripts/powershell_lifecycle.ps1',
-                         'lib/argv_transport.py','lib/completion_names.py'):
+                         'lib/argv_transport.py','lib/completion_names.py',
+                         'lib/host_platform.py','scripts/lifecycle.sh'):
                 target = root/name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(ROOT/name, target)
@@ -145,7 +146,7 @@ class Packaging(unittest.TestCase):
                                      '--output-dir', str(Path(directory)/'out')],
                                     capture_output=True, text=True, check=False)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(verify.verify(root), 18)
+            self.assertEqual(verify.verify(root), 20)
             wanted = {p.relative_to(root).as_posix() for p in verify.source_files(root)} | {'CHECKSUMS.json'}
             executable = {'install.sh', 'uninstall.sh', 'scripts/build.sh',
                           'scripts/install.sh', 'bin/blastoff'}
@@ -165,6 +166,7 @@ class Packaging(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="blastoff wrapper ' ") as directory:
             root = Path(directory)
             (root/'scripts').mkdir()
+            shutil.copyfile(ROOT/'scripts/lifecycle.sh', root/'scripts/lifecycle.sh')
             fixture = ("import json, sys\n"
                        "print(json.dumps([sys.flags.isolated, sys.argv[1:], sys.stdin.read()]))\n"
                        "print('fixture stderr', file=sys.stderr)\n"
@@ -185,7 +187,12 @@ class Packaging(unittest.TestCase):
                                             cwd=root/'scripts', env=env, input='input bytes',
                                             capture_output=True, text=True, check=False)
                     self.assertEqual(result.returncode, 17, result.stderr)
-                    self.assertEqual(json.loads(result.stdout), [1, leading + args, 'input bytes'])
+                    forwarded = json.loads(result.stdout)
+                    if wrapper != 'scripts/build.sh':
+                        self.assertEqual(forwarded[1][0], '--_bash-host-v1')
+                        self.assertTrue(forwarded[1][1])
+                        forwarded[1] = forwarded[1][2:]
+                    self.assertEqual(forwarded, [1, leading + args, 'input bytes'])
                     self.assertEqual(result.stderr, 'fixture stderr\n')
                 env['BLASTOFF_PYTHON'] = str(root/'missing python')
                 result = subprocess.run([shutil.which('bash'), str(root/wrapper)],

@@ -99,11 +99,17 @@ def make_plan(action, context, *, verify=True):
     if not isinstance(context,dict): raise core.Failure('Invalid lifecycle context',2)
     if context.get('host') != os.name:
         raise core.Failure('PowerShell and Python platform mismatch; do not mix Windows and WSL',3)
+    try:
+        platforms = core.ui_module('host_platform')
+        platform = platforms.validate(platforms.detect('powershell'))
+    except ValueError as error:
+        raise core.Failure(str(error),3) from error
     module_root=integration.absolute(core,context['module_root'])
     if module_root == Path(module_root.anchor): raise core.Failure('Refusing filesystem root as ModuleRoot',2)
     package=module_root/'blastoff'; private=control(package)
     doc=read_manifest(package)
     plan=engine.Plan(action,package,doc,manifest=private/'install.json',lock=private/'.install.lock',backup_root=private/'profile-backups')
+    plan.platform = platform
     previous=(doc.get('integration') or {}).get('profiles',{}).get('powershell')
     if action=='uninstall':
         if doc['version'] is None:
@@ -181,7 +187,7 @@ def description(plan):
     if plan.action=='install' and plan.new_doc!=plan.doc: actions.append(['record ownership',str(plan.manifest)])
     elif plan.action=='uninstall' and plan.doc['version']: actions.append(['remove ownership record',str(plan.manifest)])
     return {'protocol':1,'action':plan.action,'version':core.VERSION,'destination':str(plan.prefix),
-            'current':plan.current,'actions':actions,
+            'current':plan.current,'actions':actions,'platform':plan.platform,
             'profiles':profiles,'notes':plan.notes,'token':digest}
 
 

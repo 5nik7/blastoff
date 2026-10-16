@@ -8,7 +8,7 @@ function Get-BlastoffRuntime {
     $names = if ($IsWindows) { @('py','python3','python') } else { @('python3','python') }
     foreach ($name in $names) {
         $application = Get-Command -Name $name -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($application) {
+        if ($application -and [IO.Path]::GetExtension($application.Source) -notin @('.cmd','.bat','.ps1')) {
             $prefixArguments=@(); if ($name -eq 'py') { $prefixArguments=@('-3') }
             return @{ Executable=$application.Source; Prefix=$prefixArguments }
         }

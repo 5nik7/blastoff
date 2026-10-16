@@ -34,19 +34,37 @@ the separate CurrentUser layout in POWERSHELL.md):
 | Host | Default prefix |
 |---|---|
 | Native Termux | `$PREFIX` (required unless `--prefix` is supplied) |
+| WSL / Linux | Linux `~/.local`; use the host's native Python |
 | Other POSIX | `~/.local` |
 | Windows | `$LOCALAPPDATA/Programs/Blastoff`, otherwise `~/.local` |
 
-The plan shows version, prefix, migration, file/profile changes and activation
+The plan shows SYSTEM, version, prefix, migration, file/profile changes and activation
 instructions. `--color auto|always|never` controls decoration; presence of
 `NO_COLOR` wins. Dry-run verifies source integrity and destinations without
 writes, shell probes or executing profiles. Installing also never executes
 profiles automatically; start a fresh shell or review the printed activation
 commands for your current session. Bash may need `hash -r`, Zsh `rehash`.
 
-The payload is `<prefix>/share/blastoff/versions/0.1.10`. On POSIX the launcher
+`SYSTEM` distinguishes `Termux (Android)`, `WSL (Linux)`, `Linux`, `Windows`,
+macOS and other host identities. `--verbose` includes detection evidence and the
+selected Python executable. Detection reads runtime/kernel/environment identity,
+without running shell probes, reading profiles or starting a second interpreter.
+Native Android plus Termux identity is required for the Termux default; an inherited
+PREFIX alone does not establish Termux. WSL markers apply only to Linux runtimes.
+PowerShell uses its actual host even when MSYSTEM or WSL variables are inherited.
+
+MSYS2/Git Bash and Cygwin Bash lifecycle entry points stop with status 3 before
+launching Python, even when Python is absent. Open PowerShell 7+ in the source
+directory and run `.\install.ps1 -WhatIf` (or `.\uninstall.ps1 -WhatIf`). This is
+guidance, not automatic execution or a migration of shell-prefix ownership.
+Bash with a Windows Python runtime is refused before destination planning.
+Use Linux Python inside WSL; no Windows/WSL path translation is performed.
+Other POSIX labels preserve existing defaults without certifying new native hosts.
+
+The payload is `<prefix>/share/blastoff/versions/0.1.11`. On POSIX the launcher
 uses the discovered absolute Bash path, avoiding Termux's absent `/usr/bin/env`.
 `BLASTOFF_PYTHON` selects an interpreter executable, not a command with flags.
+Missing Python reports an actionable diagnostic and status 3 in both frontends.
 Fresh native Windows installs omit the POSIX launcher even if Git Bash exists.
 Native Windows runtime verification remains deferred; see `WINDOWS-CHECKS.md`.
 
@@ -114,7 +132,7 @@ If the source is unavailable, use the installed public wrapper, for example on
 Termux with the default prefix:
 
 ```sh
-bash "$PREFIX/share/blastoff/versions/0.1.10/uninstall.sh" --prefix "$PREFIX" --dry-run
+bash "$PREFIX/share/blastoff/versions/0.1.11/uninstall.sh" --prefix "$PREFIX" --dry-run
 # Remove --dry-run only when removal is wanted.
 ```
 
@@ -164,7 +182,7 @@ Native PowerShell 7+ (no Bash/WSL needed):
 ```
 
 For manual activation, substitute your actual absolute prefix below. PowerShell
-can import `<prefix>/share/blastoff/versions/0.1.10/powershell/blastoff.psd1`
+can import `<prefix>/share/blastoff/versions/0.1.11/powershell/blastoff.psd1`
 explicitly. Bash can source `<prefix>/share/bash-completion/completions/blastoff`;
 Fish can source `<prefix>/share/fish/vendor_completions.d/blastoff.fish`.
 For Zsh, add `<prefix>/share/zsh/site-functions` to `fpath` before your existing
@@ -196,7 +214,7 @@ No automatic migration is needed: old config backups remain readable with unknow
 origin when they lack provenance. Bat and fzf remain optional; no dependencies are
 installed. -v/--verbose shows detailed lifecycle actions on stderr.
 
-Rehearse 0.1.9 to 0.1.10 upgrades in temporary prefixes using the actual old source,
+Rehearse 0.1.10 to 0.1.11 upgrades in temporary prefixes using the actual old source,
 then verify helper resolution, completions, manual/version and retained data after
 uninstall. Final checksums/packages follow final code and documentation edits.
 Native Windows and human visual checks remain separate gates in STATUS.md.

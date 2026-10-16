@@ -1,3 +1,19 @@
+# 0.1.11 native platform and PowerShell follow-up (pending until run)
+
+Current additions: confirm SYSTEM is Windows under native PowerShell even with
+inherited MSYSTEM/WSL variables, and WSL (Linux) inside Linux pwsh. Verify
+MSYS2/Git Bash refuses shell installation before Python and directs users to the
+native PowerShell installer. Record real hosts separately from classifier fixtures.
+Run unittest discovery: it now invokes parity.ps1 automatically when pwsh exists.
+Check missing Python status 3, automatic batch-runtime exclusion, and legacy
+installer literal empty/Unicode/quoted operands. Parity probes cover available
+Legacy/Standard/Windows modes without changing the caller's lasting preferences.
+
+Rehearse 0.1.10 to 0.1.11 using verified old/new sources and temporary ModuleRoot
+and ProfilePath. The current native lifecycle harness accepts -PriorSource for
+this check. Test source relocation, modified-file retention and shell/module
+ownership separately. No native pass is implied until the scripts run.
+
 # 0.1.8 native PowerShell follow-up (pending until run)
 
 Use [POWERSHELL.md](POWERSHELL.md) for the current parity matrix and root lifecycle.
@@ -163,7 +179,7 @@ $usage = Get-Content -Raw -LiteralPath (Join-Path $Report 'usage.err.txt') | Con
 if ($usage.code -ne 2) { throw 'Expected one JSON error on stderr' }
 ```
 
-Expected: version matching VERSION (currently `blastoff 0.1.10`), plain help, clean streams, and the shell remains
+Expected: version matching VERSION (currently `blastoff 0.1.11`), plain help, clean streams, and the shell remains
 open after status 2. A function exposes `$LASTEXITCODE`; it does **not** terminate
 the calling shell or set that shell process's eventual exit status. To propagate
 status from a separate automation process, explicitly `exit $LASTEXITCODE` there.

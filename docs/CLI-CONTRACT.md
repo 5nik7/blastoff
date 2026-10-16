@@ -1,4 +1,4 @@
-# Blastoff command contract — 0.1.10 review build
+# Blastoff command contract — 0.1.11 review build
 
 ## Paths
 
@@ -62,13 +62,26 @@ not rewritten. Fish uses conf.d; available pwsh gets an absolute versioned manif
 import. Uninstall removes exact owned blocks/files, retaining unrelated profile
 edits, user data and `<prefix>/share/blastoff/profile-backups` recovery copies.
 
-Plans show version, prefix, changes and activation; `--color auto|always|never`
+Plans show SYSTEM, version, prefix, changes and activation; `--color auto|always|never`
 and NO_COLOR precedence apply. Dry-run writes nothing and runs no shell probes
 or profiles. Installation never executes profiles automatically. Legacy
 `bash scripts/install.sh install --yes` and native `scripts/install.ps1` remain
 supported; fresh legacy installs leave activation manual unless already owning
 integration. See INSTALLATION.md for compatibility/removal syntax and limitations.
 Native Windows runtime verification remains pending.
+
+Lifecycle host detection distinguishes native Termux, WSL, Linux, Windows and
+other POSIX hosts; verbose output includes evidence and the interpreter path.
+WSL retains Linux paths and ~/.local. Native Termux retains PREFIX; explicit
+--prefix bypasses only default-prefix selection, never host compatibility guards.
+MSYS2/Git Bash and Cygwin Bash installers return 3 before Python, with instructions
+to open native PowerShell 7+ and review .\install.ps1 -WhatIf or .\uninstall.ps1
+-WhatIf. They never invoke another shell automatically. Incompatible Bash/Python
+hosts return 3 before destination planning. Detection starts no probes/profiles
+and is excluded from ordinary application help/version and module import.
+Missing Python is status 3 in both frontends, including the Bash command launcher.
+The PowerShell lifecycle's private plan includes platform metadata; public
+application JSON and ownership formats are unchanged.
 
 ## Commands and aliases
 

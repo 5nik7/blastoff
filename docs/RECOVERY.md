@@ -1,6 +1,6 @@
 # Recovery, editing and tracking
 
-Blastoff 0.1.10 keeps the active Starship file separate from local theme storage.
+Blastoff 0.1.11 keeps the active Starship file separate from local theme storage.
 Use `blastoff current` to distinguish last-loaded history from exact matches,
 and `blastoff doctor --json` to inspect resolved paths. Neither repairs state.
 

@@ -1,7 +1,7 @@
 # blastoff
 
 A Starship theme switcher and module library with the same behavior from Bash
-and native PowerShell. This is a **0.1.10 review build** for integration with pi.
+and native PowerShell. This is a **0.1.11 review build** for integration with pi.
 See `docs/STATUS.md` before treating it as a production release.
 
 Fast, safe operation comes first. Human output uses purple/magenta accents;
@@ -39,6 +39,11 @@ storage and active-config write protections remain unchanged. See the
 [dotfiles notes](docs/TERMUX-QUICKSTART.md#linked-dotfiles-storage) for limits.
 
 ## Install
+
+Installation plans show the detected SYSTEM and retain native Termux/WSL/Linux
+defaults. MSYS2/Git Bash users receive instructions for the native PowerShell 7+
+installer; no other shell is launched automatically. Missing Python reports status
+3 in either frontend. See [installation details](docs/INSTALLATION.md).
 
 From the reviewed source directory (Python 3.11+ and Bash required):
 

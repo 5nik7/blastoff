@@ -1,3 +1,91 @@
+# 0.1.11 platform detection and frontend parity — 2026-10-16
+
+Implemented shared lifecycle host classification and SYSTEM output, native Termux
+and WSL defaults, MSYS2/Git Bash/Cygwin guidance, and Bash/runtime mismatch refusal
+before destination planning. Missing Python now returns 3 from the Bash command
+as well as lifecycle/PowerShell entry points. The legacy PowerShell installer uses
+the shared literal argv transport without application alias rewriting; automatic
+runtime selection excludes batch launchers. Public application JSON, storage and
+ownership formats remain unchanged. PowerShell remains 7+, Python remains 3.11+.
+
+Host: native Termux, Android 15/aarch64, kernel
+`5.4.274-qgki-30957850-abG996USQSJHZB1`; Python 3.14.6, Bash 5.3.20, Zsh 5.9.2,
+Fish 4.9.3. PowerShell and groff are unavailable; mandoc is available.
+
+## Verification and limits
+
+- Focused platform/transport/package/PowerShell-backend/static-completion/docs run:
+  **34 tests passed** in 16.563 seconds. Classifier fixtures cover native Android,
+  inherited markers, WSL, Linux, Windows, MSYS2 variants and no-write refusals;
+  they do not establish native execution on those other hosts.
+- Full `python3 -B -m unittest discover -s tests -v` rerun: **275 tests,
+  268 passed, seven skipped**, 195.156 seconds. Evidence: `test-termux-0.1.11.txt`.
+  Skips: four native PowerShell tests, one Windows junction, opt-in real Starship
+  presets, and the separately run archive rehearsal.
+- Initial full run: one numbered-picker Ctrl-C PTY timeout (275 tests,
+  238.328 seconds). The identical timeout reproduced once in three runs against
+  the preserved, unchanged 0.1.10 source; three focused 0.1.11 runs passed.
+  The picker code was not changed. This intermittent issue remains open; the
+  successful rerun is not proof it is fixed. Both initial and comparison output
+  are preserved in `test-termux-0.1.11-initial.txt` and
+  `test-termux-0.1.11-pty-comparison.txt`.
+- Native Bash install dry-run, isolated HOME/PATH/prefix: SYSTEM reported
+  `Termux (Android)`; verbose evidence reported android/posix/linux-android.
+  The full fixture inventory was unchanged, including no destination creation.
+- Bash syntax checks passed individually for all shipped shell scripts and the
+  command/completion; native Zsh/Fish syntax, `mandoc -Tlint`, Python compilation
+  without bytecode and `git diff --check` passed.
+- Packaged Bash rehearsal using the actual verified 0.1.10 source: upgrade,
+  idempotence, dry-run, relocated-source operation, missing-Python status 3,
+  installed helper/completion/manual resolution, uninstall and data retention
+  passed in 12.290 seconds. Evidence: `test-termux-0.1.11-archive.txt`.
+- A separate genuine 0.1.10 -> 0.1.11 CurrentUser-layout Python-backend rehearsal
+  passed on Termux: old payload retained during upgrade, current profile/version,
+  repeat no-op, installed core/helpers, installed uninstaller and modified-file/
+  application-data retention. This exercised Python's shared lifecycle backend,
+  not a PowerShell engine or Windows filesystem.
+- Native PowerShell completion fixture setup now imports sys. Unittest invokes
+  parity.ps1 when pwsh exists. Its independent baseline preserves literal argv;
+  probes cover available native argument modes, module/legacy forwarding, raw
+  TOML, errors and independent mutation/provenance state. The native lifecycle
+  harness covers repair, source relocation, retention and optional -PriorSource
+  upgrade. These scripts have not executed on this host; native PowerShell 7.0,
+  7.2/current, Windows, WSL/MSYS2, interactive Ctrl-C and human visuals remain gates.
+
+## Startup measurements
+
+`startup-termux-0.1.11.json`: 60 fresh-process samples per command after five
+warmups, alternating current and verified 0.1.10 sources on the same device.
+The test suites had finished. These are working-device measurements, not a
+controlled idle-host budget; no optimization or speedup is claimed. Python and
+Bash are measured separately; PowerShell remains unmeasured.
+
+| Entry | 0.1.10 p50 ms | 0.1.11 p50 ms | 0.1.11 p95 ms |
+|---|---:|---:|---:|
+| python-version | 79.358 | 80.959 | 114.614 |
+| bash-version | 92.828 | 91.616 | 129.107 |
+| python-help | 199.252 | 198.978 | 279.946 |
+| bash-help | 212.237 | 216.213 | 314.041 |
+| python-bare | 199.547 | 199.319 | 257.733 |
+| bash-bare | 184.674 | 211.628 | 401.905 |
+| python-current | 208.952 | 209.106 | 321.725 |
+| bash-current | 252.855 | 249.650 | 412.879 |
+
+The initial bare-Bash p50 increased by 26.954 ms with broad sample spread. A
+focused 60-sample paired repeat measured 0.1.11 p50/p95 at 211.356/277.682 ms,
+versus 0.1.10 at 213.814/283.836 ms. See
+`startup-termux-0.1.11-bare-recheck.json`. The initial difference did not persist;
+these results do not establish a consistent startup regression or speedup.
+
+## Packaging and boundaries
+
+Two builds produced byte-identical ZIP, tar.gz and SHA256SUMS. Source and both
+extracted inventories verified **173 files**; outer SHA-256 sums matched. These
+checks are repeated after the final evidence-only edits. The final archive also
+receives an isolated installation rehearsal, reported separately at completion.
+Review artifacts stay outside the checkout. No live install, profile/PATH/config changes, commits, tags, pushes
+or publication were performed. Historical evidence below remains intact.
+
 # Blastoff 0.1.10 no-argument help follow-up — 2026-10-14
 
 Bare `blastoff`, `-h` and `--help` now produce identical full root help, exit 0

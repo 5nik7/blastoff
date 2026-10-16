@@ -113,6 +113,11 @@ import subprocess
 import unittest
 @unittest.skipUnless(shutil.which('pwsh'), 'pwsh unavailable; native lifecycle/session checks pending')
 class NativePowerShellAdapters(unittest.TestCase):
+    def test_command_parity(self):
+        arguments=[shutil.which('pwsh'),'-NoProfile','-File',str(ROOT/'tests/parity.ps1')]
+        if os.name != 'nt': arguments.append('-AllowNonWindows')
+        result=subprocess.run(arguments,capture_output=True,text=True,timeout=240)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
     def test_fresh_session(self):
         result=subprocess.run([shutil.which('pwsh'),'-NoProfile','-File',str(ROOT/'tests/powershell_session.ps1')],capture_output=True,text=True,timeout=30)
         self.assertEqual(result.returncode,0,result.stderr)

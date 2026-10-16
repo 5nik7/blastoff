@@ -1,4 +1,4 @@
-.TH BLASTOFF 1 "2026-10-14" "blastoff 0.1.10" "User Commands"
+.TH BLASTOFF 1 "2026-10-16" "blastoff 0.1.11" "User Commands"
 .SH NAME
 blastoff \- manage Starship themes and stored module configurations
 .SH SYNOPSIS
@@ -384,6 +384,14 @@ No action word or --yes is required by these public wrappers.
 Use --prefix PATH for an explicit absolute destination.
 Defaults are native Termux PREFIX, other POSIX ~/.local,
 and Windows LOCALAPPDATA/Programs/Blastoff (fallback ~/.local).
+Plans show SYSTEM, distinguishing Termux (Android), WSL (Linux), Linux,
+Windows and other hosts. Verbose diagnostics include detection evidence
+and the Python executable. WSL uses Linux paths and Python.
+MSYS2/Git Bash and Cygwin Bash lifecycle entry points stop with status 3
+before launching Python and direct users to review install.ps1 or uninstall.ps1
+with -WhatIf in native PowerShell 7+. No shell is started automatically.
+Incompatible Bash/Python hosts are refused before destination planning.
+Missing Python returns status 3 in both frontends.
 Source checksums are mandatory even for dry-run; never automatically
 refreshed.
 Only after reviewing deliberate source changes, run bash scripts/build.sh.

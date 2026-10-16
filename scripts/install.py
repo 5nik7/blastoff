@@ -32,13 +32,12 @@ def digest(data):
 
 
 def native_termux():
-    return (os.name == 'posix' and (sys.platform == 'android' or hasattr(sys, 'getandroidapilevel'))
-            and bool(os.environ.get('TERMUX_VERSION') or os.environ.get('TERMUX__PREFIX')
-                     or '/com.termux/' in sys.executable))
+    return core.ui_module('host_platform').detect()['environment'] == 'termux'
 
 
-def default_prefix():
-    if native_termux():
+def default_prefix(platform=None):
+    termux = platform['environment'] == 'termux' if platform else native_termux()
+    if termux:
         value = os.environ.get('PREFIX')
         if not value:
             raise core.Failure('Native Termux requires PREFIX; set it or pass --prefix PATH.', 2)
@@ -425,9 +424,11 @@ class Output:
         name = ('\033[35m'+label+'\033[0m') if self.color else label
         print('  '+name+' '*(10-len(label))+str(value))
 
-    def show(self, plan, dry):
+    def show(self, plan, dry, platform=None):
         print('Blastoff '+plan.action)
         self.row('VERSION', core.VERSION)
+        if platform:
+            self.row('SYSTEM', platform['label'])
         self.row('PREFIX', plan.prefix)
         if dry:
             self.row('DRY RUN', 'preview only; no files will change')
@@ -450,6 +451,18 @@ class Output:
 
 def run(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
+    shell, shell_os = 'python', ''
+    if argv[:1] == ['--_bash-host-v1']:
+        if len(argv) < 3:
+            raise core.Failure('Invalid Bash lifecycle host context', 3)
+        shell, shell_os = 'bash', argv[1]
+        argv = argv[2:]
+    elif argv[:1] == ['--_powershell-argv-v1']:
+        try:
+            argv, _ = core.ui_module('argv_transport').decode(argv, aliases=False)
+        except ValueError as error:
+            raise core.Failure(str(error), 3) from error
+        shell = 'powershell'
     public = len(argv) >= 2 and argv[0] in ('install', 'uninstall') and argv[1] == '--public'
     parser = argparse.ArgumentParser(prog='bash '+argv[0]+'.sh' if public else None,
                                      description='Offline Blastoff lifecycle; themes and Starship configuration are preserved.')
@@ -466,20 +479,28 @@ def run(argv=None):
     parser.add_argument('--version', action='version', version='blastoff '+core.VERSION)
     parser.add_argument('--color', choices=['auto', 'always', 'never'], default='auto')
     args = parser.parse_args(argv)
+    try:
+        platforms = core.ui_module('host_platform')
+        platform = platforms.validate(platforms.detect(shell, shell_os))
+    except ValueError as error:
+        raise core.Failure(str(error), 3) from error
     if args.action == 'install':
         verifier = module('blastoff_verify', ROOT/'scripts/verify.py')
         verifier.verify(ROOT)
-    prefix = integration.absolute(core, args.prefix) if args.prefix is not None else default_prefix()
+    prefix = integration.absolute(core, args.prefix) if args.prefix is not None else default_prefix(platform)
     if prefix == Path(prefix.anchor):
         raise core.Failure('Refusing filesystem root as installation prefix', 2)
     plan = make_plan(args.action, prefix, args.public)
     preflight(plan)
     if args.verbose:
+        for detail in [*platform['evidence'], 'Python executable: '+platform['python']]:
+            safe = ''.join(c if c.isprintable() else ascii(c)[1:-1] for c in detail)
+            print('blastoff: debug: '+safe, file=sys.stderr)
         for reason, target in plan.rows:
             safe = ''.join(c if c.isprintable() else ascii(c)[1:-1] for c in str(target))
             print('blastoff: debug: '+reason+' '+safe, file=sys.stderr)
     output = Output(args.color)
-    output.show(plan, args.dry_run)
+    output.show(plan, args.dry_run, platform)
     if args.dry_run:
         output.row('DONE', 'preview complete; no files changed')
         return 0

@@ -51,3 +51,18 @@ list help remains in lib/cli.py. tests/test_list_output.py covers read-only iden
 color and races; parity.ps1 adds the frontend comparison. No new installed helper,
 resource, dependency, ownership rule, data migration or completion syntax is added.
 Final checksums and archives must be regenerated after evidence/doc updates.
+
+## 0.1.11 platform and PowerShell audit
+
+The current module already shares the Python core, latest help and theme-list
+behavior with Bash. This slice adds lib/host_platform.py for lifecycle detection
+and scripts/lifecycle.sh for the Bash boundary; neither is imported by ordinary
+help/version or PowerShell import/static completion.
+
+Confirmed gaps: Bash missing-runtime status differed from PowerShell; the legacy
+PowerShell installer bypassed literal argv transport; automatic runtime candidates
+did not exclude batch launchers; native completion fixtures lacked `import sys`;
+and unittest did not invoke parity.ps1. The parity script also assumed every error
+was JSON and used a direct native baseline that could lose empty arguments in
+Legacy mode. These are addressed with focused behavior and acceptance changes.
+Native engine execution is still a separate gate, not proven by this source audit.
