@@ -1,3 +1,57 @@
+# 0.1.12 default Starship configuration and file aliases — 2026-10-21
+
+Implemented the owner-approved default-path workflow. Normal active-file writes
+preserve symlink chains, guard retargeting, lock the physical target and keep
+canonical provenance. Explicit --replace-link still converts a link. Configured
+and resolved paths are visible; default lookup requires no STARSHIP_CONFIG.
+Historical alias tracking is read conservatively and archived on explicit writes.
+See [decision 0004](decisions/0004-active-config-links.md).
+
+Native host: Termux, Android 15/aarch64, Python 3.14.8.
+
+- Full suite: 287 run, 280 passed, seven skipped, 215.296 seconds.
+- After the final library-write/read boundary refinement: 99 affected tests,
+  98 passed, one native-Windows skip, 67.888 seconds. Twelve focused tests cover
+  default links, apply/module/save/restore, no-op writes, backup metadata, physical
+  locks, retargeting before/after locks and atomic publication, external edits,
+  unsafe parents/targets, canonical/legacy/conflicting/pending tracking and Windows
+  extended path spelling. Editor tests verify preserved links and recovery.
+- Bash/Zsh/Fish syntax, Python compilation without bytecode, mandoc lint and
+  whitespace checks passed. Native PowerShell/Windows execution is unavailable;
+  file-link privilege, junction/reparse and native lifecycle checks remain pending
+  in WINDOWS-CHECKS.md. POSIX tests and spelling fixtures do not establish parity.
+
+Startup sampling alternated the current source and checksum-verified 0.1.11 from
+Git HEAD, 20 samples after five warmups per command, after test suites finished.
+This working-device sample shows no meaningful startup regression or speedup.
+
+| Entry | 0.1.11 p50 ms | 0.1.12 p50 ms | 0.1.12 p95 ms |
+| --- | ---: | ---: | ---: |
+| python-version | 79.005 | 76.076 | 87.032 |
+| bash-version | 92.721 | 92.47 | 102.558 |
+| python-help | 197.119 | 200.251 | 279.707 |
+| bash-help | 210.89 | 215.499 | 279.002 |
+| python-current | 237.611 | 243.958 | 307.427 |
+| bash-current | 267.743 | 259.752 | 332.866 |
+
+Both ZIP and tar.gz extracted inventories verified all 176 source files. The
+isolated archive lifecycle test passed in 11.351 seconds using actual verified
+0.1.11 source: upgrade, old-payload preservation, relocated-source execution,
+installed defaults/links/history, completions, manual, uninstall and data retention.
+
+The separately authorized live Termux upgrade passed after reviewing the public
+installer dry-run: install the 41-file 0.1.12 runtime and refresh launcher/manual,
+with no profile changes. Installed version/doctor/current pass with STARSHIP_CONFIG
+removed from the child environment. The configured default resolves to the existing
+repository target; its link and content hashes and all 135 Blastoff application
+data files match the pre-upgrade snapshot. Existing edited-origin history remains
+available. No theme was applied or prompt/custom command executed on live data.
+
+Final package/checksum verification and local documentation-link checks passed.
+The installer rehearsal uses only disposable homes/prefixes. No commit, tag, push
+or publication occurred. Native Windows/PowerShell acceptance remains pending.
+Historical evidence follows.
+
 # 0.1.11 platform detection and frontend parity — 2026-10-16
 
 Implemented shared lifecycle host classification and SYSTEM output, native Termux

@@ -99,10 +99,10 @@ def edit(core, app):
                 raise core.Failure('Tracking changed while editing; edited work retained for review')
             with provenance.transaction(core,app) as commit:
                 if data!=old or app.config.is_symlink() or before is None:
-                    core.atomic(app.config,data,before)
+                    app.atomic_active(data,before)
                 commit(provenance.updated(core,app,previous))
             success=True
-            app.emit({'config':str(app.config),'backup':backup},'Active configuration saved'+('; backup '+backup if backup else ''))
+            app.emit({'config':str(app.configured_config),'backup':backup},'Active configuration saved'+('; backup '+backup if backup else ''))
         finally:
             if success:
                 working.unlink()

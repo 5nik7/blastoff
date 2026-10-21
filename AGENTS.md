@@ -40,8 +40,9 @@ Never assume it represents main or copy it over existing work blindly.
 - Back up replaced/deleted content (explicit backup delete permanently removes
   its selected pairs; do not create backups of backups). Stage in the destination directory and
   replace atomically. Detect external edits, locks and unsafe destinations.
-- Never write through an active config symlink. Require `--replace-link` to
-  record the old link and replace it; leave its target alone.
+- Preserve active-file symlinks by default: pin and guard the link chain, lock
+  and atomically update its regular target. Keep parent-directory write protections.
+  `--replace-link` explicitly records and replaces the link, leaving its target alone.
 - Never break a lock automatically, recursively delete user directories or
   silently migrate legacy paths. Migration copies from an explicit source.
 - Never run a theme's custom commands, use eval, or render a live prompt as

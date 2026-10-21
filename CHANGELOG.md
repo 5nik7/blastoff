@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.12 — default Starship path and preserved config links
+
+- Preserve active-file symlinks during apply, module load, edit and restore; guard
+  the link chain and physical target, and share physical-target locks across aliases.
+- Keep explicit `--replace-link` conversion and unsafe-parent/library protections.
+- Reuse canonical-target provenance when switching to Starship's default path;
+  retain legacy alias records as recovery evidence after successful mutations.
+- Add `resolved_config` to current/doctor without changing the configured path field.
+
 ## 0.1.11 — installer host detection and frontend parity
 
 - Identify Termux, WSL, Linux, Windows and other hosts in lifecycle plans; use

@@ -138,6 +138,21 @@ class InstalledPackage(unittest.TestCase):
             self.assertFalse((real_store/'backups'/(backup_id+'.json')).exists())
             self.assertEqual(config.read_bytes(), original)
 
+            # The installed runtime discovers the default link without an override
+            # and reuses history previously keyed by the repository target.
+            default_link = home/'.config/starship.toml'
+            default_link.parent.mkdir()
+            default_link.symlink_to(config)
+            default_env = dict(env); default_env.pop('STARSHIP_CONFIG')
+            current = json.loads(run([command,'current','--json'], environment=default_env))
+            self.assertEqual(current['config'], str(default_link))
+            self.assertEqual(current['resolved_config'], str(config))
+            self.assertEqual(current['provenance'], json.loads(run([command,'current','--json']))['provenance'])
+            config.write_bytes(b'[directory]\nstyle="blue"\n')
+            run([command,'theme','apply','daily'], environment=default_env)
+            self.assertTrue(default_link.is_symlink())
+            self.assertEqual(config.read_bytes(), original)
+
             locations = {
                 'bash': 'share/bash-completion/completions/blastoff',
                 'zsh': 'share/zsh/site-functions/_blastoff',

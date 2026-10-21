@@ -1,6 +1,6 @@
 # Recovery, editing and tracking
 
-Blastoff 0.1.11 keeps the active Starship file separate from local theme storage.
+Blastoff 0.1.12 keeps the active Starship file separate from local theme storage.
 Use `blastoff current` to distinguish last-loaded history from exact matches,
 and `blastoff doctor --json` to inspect resolved paths. Neither repairs state.
 
@@ -35,7 +35,8 @@ an explicit new theme name, then apply that local theme after reviewing scope.
 Do not delete the recovery directory until its useful content is saved elsewhere.
 Extra editor artifacts are retained; Blastoff never recursively removes them.
 
-An active symlink requires --replace-link; its target stays untouched. Linked
+An active-file symlink normally stays in place while its guarded regular target
+is updated. --replace-link explicitly converts the link and leaves its target untouched. Linked
 parents remain unsafe for publication. Choose a real absolute STARSHIP_CONFIG
 path when `.config` is itself linked. EDITOR parsing never expands shell commands.
 Use a quoted executable with arguments, e.g. `EDITOR='nvim --clean'`; quote an
@@ -45,7 +46,10 @@ appropriate foreground/wait arguments for other configured GUI editors.
 
 ## Unknown or stale provenance
 
-State lives under `<canonical storage>/state/provenance`, keyed by active pathname.
+State lives under `<canonical storage>/state/provenance`, keyed by physical target (configured pathname for --replace-link).
+Legacy alias records remain readable; a successful mutation archives superseded
+records under unique `.legacy-*` names. Conflicting/pending aliases cannot
+authorize implicit save.
 The source theme and last-loaded digest remain historical when active bytes change.
 A separate save target records the local file that no-argument save may replace.
 Changing/deleting/renaming that destination invalidates implicit overwrite authority.

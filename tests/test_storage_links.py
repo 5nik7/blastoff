@@ -158,7 +158,6 @@ class StorageLinks(Harness):
         self.config.unlink()
         target = self.write(real_config/'starship.toml', OLD)
         self.config.symlink_to(target)
-        self.invoke('theme', 'apply', 'purple', code=1)
         self.invoke('theme', 'apply', 'purple', '--replace-link')
         self.assertFalse(self.config.is_symlink())
         self.assertEqual(target.read_text(), OLD)

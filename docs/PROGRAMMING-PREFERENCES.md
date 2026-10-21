@@ -85,9 +85,12 @@ magenta accents. A polished compact branded banner is a later design slice.
 
 The following are implementation choices made to support the preferences above:
 copy-on-apply, per-file atomic replacement, checksummed backups, safe portable
-names, explicit symlink conversion, cooperating-writer locks, conservative TOML
+names, guarded symlink-target updates with optional explicit conversion, cooperating-writer locks, conservative TOML
 module-layout support, static completions and checksum-owned uninstallation.
 Keep them reviewable; do not present them as preferences Nick explicitly stated.
+Exception: on 2026-10-21 the owner approved default-path Starship discovery and
+preserving the existing active-file link during normal writes; see
+[decision 0004](decisions/0004-active-config-links.md).
 
 Fancy Unicode is the default browser; --fzf preserves compatible user styling.
 Respect normal bat theme/config/cache discovery. PowerShell root lifecycle and

@@ -1,4 +1,4 @@
-# 0.1.11 native platform and PowerShell follow-up (pending until run)
+# 0.1.12 native platform and PowerShell follow-up (pending until run)
 
 Current additions: confirm SYSTEM is Windows under native PowerShell even with
 inherited MSYSTEM/WSL variables, and WSL (Linux) inside Linux pwsh. Verify
@@ -9,7 +9,7 @@ Check missing Python status 3, automatic batch-runtime exclusion, and legacy
 installer literal empty/Unicode/quoted operands. Parity probes cover available
 Legacy/Standard/Windows modes without changing the caller's lasting preferences.
 
-Rehearse 0.1.10 to 0.1.11 using verified old/new sources and temporary ModuleRoot
+Rehearse 0.1.11 to 0.1.12 using verified old/new sources and temporary ModuleRoot
 and ProfilePath. The current native lifecycle harness accepts -PriorSource for
 this check. Test source relocation, modified-file retention and shell/module
 ownership separately. No native pass is implied until the scripts run.
@@ -179,7 +179,7 @@ $usage = Get-Content -Raw -LiteralPath (Join-Path $Report 'usage.err.txt') | Con
 if ($usage.code -ne 2) { throw 'Expected one JSON error on stderr' }
 ```
 
-Expected: version matching VERSION (currently `blastoff 0.1.11`), plain help, clean streams, and the shell remains
+Expected: version matching VERSION (currently `blastoff 0.1.12`), plain help, clean streams, and the shell remains
 open after status 2. A function exposes `$LASTEXITCODE`; it does **not** terminate
 the calling shell or set that shell process's eventual exit status. To propagate
 status from a separate automation process, explicitly `exit $LASTEXITCODE` there.
@@ -334,7 +334,10 @@ New-Item -ItemType SymbolicLink -Path $link -Target $target | Out-Null
 $targetHash = (Get-FileHash -LiteralPath $target).Hash
 try {
     $env:STARSHIP_CONFIG = $link
-    Check-Blastoff @('theme','apply','work') 1 | Out-Null
+    Check-Blastoff @('theme','apply','work') | Out-Null
+    if (-not ((Get-Item -LiteralPath $link).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Link was replaced' }
+    if ((Get-FileHash -LiteralPath $target).Hash -ne (Get-FileHash -LiteralPath (Join-Path $Store 'themes/work.toml')).Hash) { throw 'Target not updated' }
+    [IO.File]::WriteAllText($target, 'format = "$all"', $Utf8)
     $converted = Check-Blastoff @('theme','apply','work','--replace-link')
     if ((Get-Item -LiteralPath $link).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Link not replaced' }
     if ((Get-FileHash -LiteralPath $target).Hash -ne $targetHash) { throw 'Link target changed' }

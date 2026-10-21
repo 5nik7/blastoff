@@ -3,6 +3,7 @@ import contextlib
 import hashlib
 import json
 import os
+import uuid
 
 
 def digest(data):
@@ -15,13 +16,13 @@ def serial(fp):
     return [x.hex() if isinstance(x, bytes) else x for x in fp]
 
 
-def location(app):
-    identity = os.path.normcase(os.path.abspath(app.config))
+def location(app, configured=False):
+    identity = os.path.normcase(os.path.abspath(app.configured_config if configured else app.config))
     return app.root/'state/provenance'/(digest(identity.encode('utf-8'))+'.json')
 
 
 def valid(core, app, doc):
-    if not isinstance(doc, dict) or doc.get('version') != 1 or doc.get('config') != os.path.normcase(os.path.abspath(app.config)):
+    if not isinstance(doc, dict) or doc.get('version') != 1 or doc.get('config') not in {os.path.normcase(os.path.abspath(app.config)), os.path.normcase(os.path.abspath(app.configured_config))}:
         return False
     origin = doc.get('last_loaded')
     if not isinstance(origin, dict) or origin.get('kind') not in ('local','preset','unknown'):
@@ -45,20 +46,31 @@ def valid(core, app, doc):
     return isinstance(doc.get('active_sha256'), str) and bool(core.re.fullmatch('[a-f0-9]{64}', doc['active_sha256']))
 
 
+def record_paths(app):
+    return list(dict.fromkeys((location(app), location(app, configured=True))))
+
+
 def read_record(core, app):
-    p = location(app)
     try:
-        core.inspect_parents(p.parent)
-        if core.exists(p.with_suffix('.pending')):
-            return None, 'incomplete operation; explicit apply/save/restore required'
-        if not core.exists(p):
+        documents = []
+        for p in record_paths(app):
+            core.inspect_parents(p.parent)
+            if core.exists(p.with_suffix('.pending')):
+                return None, 'incomplete operation; explicit apply/save/restore required'
+            if not core.exists(p):
+                continue
+            if core.regular(p).st_size > 16384:
+                return None, 'invalid tracking record'
+            doc = json.loads(core.read(p))
+            if not valid(core, app, doc):
+                return None, 'invalid or unsupported tracking record'
+            documents.append(doc)
+        if not documents:
             return None, 'unknown (no tracking record)'
-        if core.regular(p).st_size > 16384:
-            return None, 'invalid tracking record'
-        doc = json.loads(core.read(p))
-        if not valid(core, app, doc):
-            return None, 'invalid or unsupported tracking record'
-        return doc, 'tracked'
+        fields = ('last_loaded', 'save_target', 'active_sha256')
+        if any(any(d.get(k) != documents[0].get(k) for k in fields) for d in documents[1:]):
+            return None, 'conflicting alias tracking; explicit apply/save/restore required'
+        return documents[0], 'tracked'
     except (core.Failure, OSError, ValueError, TypeError, AttributeError):
         return None, 'invalid or unsafe tracking record'
 
@@ -114,8 +126,9 @@ def list_identity(core, app):
                'note':'Current theme: unknown. Use blastoff current for local matches.'}
     try:
         record = location(app)
-        observe(record)
-        observe(record.with_suffix('.pending'))
+        for record in record_paths(app):
+            observe(record)
+            observe(record.with_suffix('.pending'))
         doc, state = read_record(core, app)
         if not doc or doc['last_loaded']['kind'] == 'unknown':
             if doc:
@@ -144,6 +157,8 @@ def list_identity(core, app):
                 except (core.Failure, OSError) as error:
                     app.diagnostic('Cannot inspect tracked theme: '+str(error))
                     reasons.append('source unavailable')
+        if app._active is not None:
+            app._active.check()
         if any(stamp(p, links) != before for p, links, before in observed):
             unknown['note'] = 'Current theme: unknown (files changed during inspection; retry list).'
             return unknown
@@ -196,11 +211,30 @@ def transaction(core, app):
             core.regular(candidate)
     app._backup_origin = read_record(core,app)[0]
     expected = core.fingerprint(p)
+    aliases = []
+    for candidate in record_paths(app):
+        if candidate == p:
+            continue
+        pending = candidate.with_suffix('.pending')
+        for item in (candidate, pending):
+            if core.exists(item): core.regular(item)
+        aliases.append((candidate, core.fingerprint(candidate), core.fingerprint(pending)))
     core.atomic(marker, b'{"version":1}\n', core.fingerprint(marker))
     completed = False
     def commit(doc):
         nonlocal completed
+        app._active.check()
+        for alias, before, pending_before in aliases:
+            if core.fingerprint(alias) != before or core.fingerprint(alias.with_suffix('.pending')) != pending_before:
+                raise core.Failure('Alias tracking changed during operation')
         core.atomic(p, (json.dumps(doc, sort_keys=True)+'\n').encode(), expected)
+        for alias, before, pending_before in aliases:
+            if before is not None:
+                os.replace(alias, alias.with_name(alias.stem+'.legacy-'+uuid.uuid4().hex+'.json'))
+            pending = alias.with_suffix('.pending')
+            if core.exists(pending):
+                core.regular(pending)
+                os.replace(pending, pending.with_name(pending.name+'.legacy-'+uuid.uuid4().hex))
         marker.unlink()
         completed = True
     try:

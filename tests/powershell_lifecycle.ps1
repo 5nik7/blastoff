@@ -48,7 +48,7 @@ for source in [*v['source_files'](root),root/'CHECKSUMS.json']:
     $themeHash=(Get-FileHash -LiteralPath $theme).Hash
     if ($PriorSource) {
         $priorVersion=(Get-Content -LiteralPath (Join-Path $PriorSource 'VERSION') -Raw).Trim()
-        if ($priorVersion -ne '0.1.10' -or $version -ne '0.1.11') { throw 'Expected genuine 0.1.10 to 0.1.11 sources' }
+        if ($priorVersion -ne '0.1.11' -or $version -ne '0.1.12') { throw 'Expected genuine 0.1.11 to 0.1.12 sources' }
         & $pwsh -NoProfile -File (Join-Path $PriorSource 'install.ps1') -ModuleRoot $moduleRoot -ProfilePath $profile
         if ($LASTEXITCODE -ne 0) { throw 'Prior version install failed' }
         $oldCore=Join-Path $moduleRoot "blastoff/$priorVersion/lib/blastoff.py"

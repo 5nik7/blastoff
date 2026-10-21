@@ -40,7 +40,7 @@ class CurrentOutput(Harness):
         self.sample()
         result = self.invoke('current', '--json', '--color', 'always')
         self.assertEqual({k:v for k,v in json.loads(result.stdout).items() if k != 'provenance'}, {
-            'config': str(self.config), 'exists': True,
+            'config': str(self.config), 'resolved_config': str(self.config), 'exists': True,
             'matching_themes': ['blastoff'], 'symlink': False,
         })
         self.assertEqual(len(result.stdout.splitlines()), 1)
@@ -136,7 +136,7 @@ class DoctorOutput(Harness):
         import sys
         result = self.invoke('doctor', '--json', '--color', 'always')
         self.assertEqual(json.loads(result.stdout), {
-            'version': core.VERSION, 'python': sys.version.split()[0], 'config': str(self.config),
+            'version': core.VERSION, 'python': sys.version.split()[0], 'config': str(self.config), 'resolved_config': str(self.config),
             'blastoff_home': str(self.store), 'themes': str(self.store/'themes'),
             'modules': str(self.store/'modules'), 'starship': None, 'fzf': None, 'gum': None,
             'config_exists': False, 'config_symlink': False,

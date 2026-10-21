@@ -25,6 +25,9 @@ def confirm(core, prompt):
 
 
 def report(app, operation, targets=(), actions=(), unresolved=()):
+    if app._active is not None and app.config != app.configured_config:
+        access = 'write' if app.args.command in {'apply','pick','restore','module-load','edit'} else 'read'
+        actions = [*actions, 'preserve active link '+str(app.configured_config)+'; '+access+' target '+str(app.config)]
     result = {'dry_run':True, 'operation':operation, 'targets':[str(p) for p in targets],
               'actions':list(actions), 'unresolved':list(unresolved)}
     lines = ['Dry run: '+operation]+['  '+str(p) for p in targets]+['  '+x for x in actions]+['  Unresolved: '+x for x in unresolved]
@@ -33,10 +36,10 @@ def report(app, operation, targets=(), actions=(), unresolved=()):
 
 
 def inspect_destination(core, app, target, *, active=False, deleting=False):
+    if active:
+        app.check_active()
     core.inspect_parents(target.parent)
     if core.exists(target):
-        if active and target.is_symlink() and not app.args.replace_link:
-            raise core.Failure('Active config is a symlink. Use --replace-link to back up and replace the link; its target stays untouched.')
         if target.is_symlink() and active and app.args.replace_link:
             core.regular(target, links=True)
         else:
@@ -282,7 +285,7 @@ def run(core, app):
             with provenance.transaction(core,app) as commit:
                 backup = app.active_write(data,expected=expected)
                 commit(provenance.updated(core,app,previous,origin=origin))
-            app.emit({'config':str(app.config),'backup':backup},'Active config updated'+('; backup '+backup if backup else ''))
+            app.emit({'config':str(app.configured_config),'backup':backup},'Active config updated'+('; backup '+backup if backup else ''))
         elif target is not None:
             if core.fingerprint(target) != expected:
                 raise core.Failure('Destination changed during operation; refusing overwrite')

@@ -27,9 +27,16 @@ class Edit(ReleaseHarness):
     def test_symlink_conversion_preserves_target(self):
         original=self.write(self.home/'source.toml','x=1\n');self.config.parent.mkdir();self.config.symlink_to(original)
         self.editor('p.write_text("x=2\\n")')
-        code,_,_=self.run_tty(['theme','edit']);self.assertEqual(code,1)
         code,_,_=self.run_tty(['theme','edit','--replace-link']);self.assertEqual(code,0)
         self.assertFalse(self.config.is_symlink());self.assertEqual(original.read_text(),'x=1\n')
+    def test_symlink_edit_preserves_link_and_target_history(self):
+        original=self.write(self.home/'source.toml','x=1\n')
+        self.config.parent.mkdir();self.config.symlink_to(original)
+        self.editor('p.write_text("x=2\\n")')
+        code,_,err=self.run_tty(['theme','edit']);self.assertEqual(code,0,err)
+        self.assertTrue(self.config.is_symlink());self.assertEqual(original.read_text(),'x=2\n')
+        self.assertEqual(self.snapshots()[0].read_text(),'x=1\n')
+
     def test_dry_run_no_launch_and_explicit_editor_failure(self):
         self.editor('raise RuntimeError("must not launch")');before=self.tree()
         self.invoke('theme','edit','--dry-run');self.assertEqual(self.tree(),before)

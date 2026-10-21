@@ -1,7 +1,7 @@
 # blastoff
 
 A Starship theme switcher and module library with the same behavior from Bash
-and native PowerShell. This is a **0.1.11 review build** for integration with pi.
+and native PowerShell. This is a **0.1.12 review build** for integration with pi.
 See `docs/STATUS.md` before treating it as a production release.
 
 Fast, safe operation comes first. Human output uses purple/magenta accents;
@@ -139,8 +139,13 @@ Theme/module delete requires `--force` and makes a backup first. Backup delete i
 permanent, shows its frozen selection/count and defaults to No; use `--yes` for
 explicit noninteractive deletion, or `--pick` for fzf Tab/Shift-Tab selection. Apply copies theme bytes into a regular active
 config and backs up changed existing content; it never edits the stored theme.
-A symlinked active config requires explicit `--replace-link` to record the old
-link and replace it while preserving its target. Listing is read-only, including
+By default Blastoff uses `~/.config/starship.toml`; a nonempty `STARSHIP_CONFIG`
+remains an explicit override. A symlinked active config keeps its link: apply,
+module load, edit and restore back up and atomically update the regular target.
+Aliases share that target's lock and history. Unsafe parents, dangling/looping
+links and stored-library targets are refused. Explicit `--replace-link` instead
+records the old link and replaces it with a regular config, leaving its target
+untouched. `current` and `doctor` show both configured and resolved paths. Listing is read-only, including
 built-in presets. Module load replaces the selected table and descendants,
 preserving unrelated settings. Unsupported inline/dotted layouts fail safely.
 

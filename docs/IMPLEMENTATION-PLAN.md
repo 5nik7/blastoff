@@ -1,3 +1,13 @@
+# 0.1.12 default Starship path and active aliases
+
+Owner-approved: preserve the default-path config symlink, implement guarded target
+writes, retain explicit overrides and --replace-link, verify and upgrade the live
+Termux installation using its existing installer. No Git publication or theme apply.
+
+- [x] Shared active-target resolution, drift guards, locks and provenance compatibility
+- [x] Focused/full isolated suites, shell/manual checks and upgrade rehearsal
+- [x] Final docs, checksums, verified package and authorized Termux upgrade
+
 # 0.1.11 platform detection and frontend parity
 
 - [x] Shared read-only host classification, visible SYSTEM and native defaults

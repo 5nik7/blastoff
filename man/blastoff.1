@@ -1,4 +1,4 @@
-.TH BLASTOFF 1 "2026-10-16" "blastoff 0.1.11" "User Commands"
+.TH BLASTOFF 1 "2026-10-21" "blastoff 0.1.12" "User Commands"
 .SH NAME
 blastoff \- manage Starship themes and stored module configurations
 .SH SYNOPSIS
@@ -84,7 +84,11 @@ fingerprint
 before atomic publication. Reopen the working pathname after atomic editor
 saves.
 Failed, invalid or conflicted edits remain at a reported recovery path.
-Use --replace-link for active leaf links; the old target is left untouched.
+Active leaf links are preserved by default; the regular target is locked,
+backed up and atomically updated.
+Unsafe parents and library targets are refused.
+Use --replace-link to convert the link instead;
+its old target is left untouched.
 Requires human terminal input/output, except dry-run reports target/editor
 only.
 .TP

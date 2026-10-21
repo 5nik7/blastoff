@@ -4,7 +4,7 @@ from __future__ import annotations
 import sys
 # Shipped UI helpers must not create bytecode during read-only commands.
 sys.dont_write_bytecode = True
-VERSION = '0.1.11'
+VERSION = '0.1.12'
 # Shared human-output accents; source text is sanitized before these are added.
 PURPLE = '38;2;138;12;233'
 PINK = '38;2;255;67;191'
@@ -203,7 +203,7 @@ def fingerprint(p):
     content = read(p, links=True)
     return (s.st_dev, s.st_ino, s.st_mtime_ns, s.st_mode, hashlib.sha256(content).digest(), os.readlink(p) if p.is_symlink() else None)
 
-def atomic(p, data, expected=None):
+def atomic(p, data, expected=None, *, check=None):
     safe_parents(p.parent)
     fd, temporary = tempfile.mkstemp(prefix='.' + p.name + '.', dir=p.parent)
     try:
@@ -213,6 +213,8 @@ def atomic(p, data, expected=None):
             os.fsync(f.fileno())
         if expected is not None and exists(p) and not p.is_symlink():
             os.chmod(temporary, stat.S_IMODE(p.stat().st_mode))
+        if check is not None:
+            check()
         if fingerprint(p) != expected:
             raise Failure('Destination changed during operation; refusing to overwrite: ' + str(p))
         os.replace(temporary, p)
@@ -382,8 +384,24 @@ class App:
         self.themes = self.root / 'themes'
         self.modules = self.root / 'modules'
         self.backups = self.root / 'backups'
-        self.config = path(os.environ.get('STARSHIP_CONFIG') or str(Path.home() / '.config/starship.toml'))
+        self.configured_config = path(os.environ.get('STARSHIP_CONFIG') or str(Path.home() / '.config/starship.toml'))
+        self._active = None
         self.color = not args.json and args.color != 'never' and 'NO_COLOR' not in os.environ and (args.color == 'always' or (sys.stdout.isatty() and os.environ.get('TERM') != 'dumb'))
+    @property
+    def config(self):
+        if self._active is None:
+            self._active = ui_module('active_config').ActiveConfig(core_api(), self.configured_config, self.args.replace_link)
+        return self._active.target
+    def check_active(self):
+        target = self.config
+        self._active.check(write=True)
+        for directory in (self.themes, self.modules):
+            if target.is_relative_to(directory):
+                raise Failure('Active configuration is a stored library path; use a separate active config')
+        return target
+    def atomic_active(self, data, expected):
+        self.check_active()
+        atomic(self.config, data, expected, check=self.check_active)
     def diagnostic(self, message, level='debug'):
         if level == 'debug' and not self.args.verbose:
             return
@@ -474,6 +492,9 @@ class App:
         ident = time.strftime('%Y%m%dT%H%M%SZ', time.gmtime()) + '-' + uuid.uuid4().hex[:12]
         metadata = {'id':ident, 'kind':kind, 'source':str(source), 'sha256':hashlib.sha256(data).hexdigest(), 'symlink_target':os.readlink(source) if source.is_symlink() else None}
         if kind == 'config':
+            metadata['configured_config'] = str(self.configured_config)
+            metadata['resolved_config'] = str(self.config)
+            metadata['active_links'] = [{'path': str(p), 'target': fp[-1]} for p, fp in self._active.links]
             metadata['provenance'] = self._backup_origin if hasattr(self, '_backup_origin') else ui_module('provenance').read_record(core_api(), self)[0]
         atomic(self.backups / (ident + '.toml'), data)
         atomic(self.backups / (ident + '.json'), (json.dumps(metadata, sort_keys=True)+'\n').encode())
@@ -481,8 +502,7 @@ class App:
         return ident
     def active_write(self, data, *, expected=...):
         parsed(data)
-        if self.config.is_symlink() and not self.args.replace_link:
-            raise Failure('Active config is a symlink. Use --replace-link to back it up and replace the link with a regular config; its target stays untouched.')
+        self.check_active()
         before = fingerprint(self.config)
         if expected is not ... and before != expected:
             raise Failure('Active config changed during operation; refusing overwrite')
@@ -493,7 +513,7 @@ class App:
             backup = self.backup(self.config, 'config')
         else:
             backup = None
-        atomic(self.config, data, before)
+        self.atomic_active(data, before)
         return backup
     def stored_write(self, target, data, *, expected=...):
         parsed(data)
@@ -561,20 +581,24 @@ class App:
     def current(self):
         data = read(self.config, links=True) if exists(self.config) else None
         matches = [p.stem for p in self.files(self.themes) if data is not None and read(p) == data]
-        result = {'config':str(self.config), 'exists':data is not None,
-                  'matching_themes':matches, 'symlink':self.config.is_symlink()}
+        result = {'config':str(self.configured_config), 'resolved_config':str(self.config), 'exists':data is not None,
+                  'matching_themes':matches, 'symlink':self.configured_config.is_symlink()}
         result['provenance'] = ui_module('provenance').status(core_api(), self, data)
         if self.args.json:
             self.emit(result)
             return
         match_text = ', '.join(matches) if matches else '(no local match)' if data is not None else '(no active config)'
         file_type = 'symlink' if result['symlink'] else 'regular file' if data is not None else 'not found'
-        self.status('Current configuration', [('MATCHES', match_text), ('CONFIG', str(self.config)), ('FILE', file_type), ('LAST LOADED', result['provenance']['origin']), ('TRACKING', result['provenance']['status'])])
+        self.status('Current configuration', [('MATCHES', match_text), ('CONFIG', str(self.configured_config)), ('TARGET', str(self.config)), ('FILE', file_type), ('LAST LOADED', result['provenance']['origin']), ('TRACKING', result['provenance']['status'])])
     def doctor(self):
-        result = {'version':VERSION, 'python':sys.version.split()[0], 'config':str(self.config),
+        try:
+            resolved = str(self.config)
+        except (Failure, OSError):
+            resolved = None
+        result = {'version':VERSION, 'python':sys.version.split()[0], 'config':str(self.configured_config), 'resolved_config':resolved,
                   'blastoff_home':str(self.root), 'themes':str(self.themes), 'modules':str(self.modules),
                   'starship':shutil.which('starship'), 'fzf':shutil.which('fzf'), 'gum':shutil.which('gum'),
-                  'config_exists':exists(self.config), 'config_symlink':self.config.is_symlink()}
+                  'config_exists':exists(self.configured_config), 'config_symlink':self.configured_config.is_symlink()}
         if self.args.json:
             self.emit(result)
             return
@@ -583,7 +607,7 @@ class App:
             state += ' (symlink)'
         self.status('Blastoff doctor', [
             ('VERSION', VERSION), ('PYTHON', result['python']),
-            ('CONFIG', result['config']), ('STATUS', state),
+            ('CONFIG', result['config']), ('TARGET', resolved or 'unavailable'), ('STATUS', state),
             ('STORAGE', result['blastoff_home']), ('THEMES', result['themes']), ('MODULES', result['modules']),
             ('STARSHIP', result['starship'] or 'not found (needed for presets)'),
             ('FZF', result['fzf'] or 'not found (optional)'), ('GUM', result['gum'] or 'not found (optional)'),
@@ -632,11 +656,17 @@ class App:
         if proc.returncode or selected not in values:
             raise Failure('Selection cancelled', 130)
         return selected
+    @contextlib.contextmanager
     def mutate(self):
         paths = [self.root / '.operation.lock']
         if self.args.command in {'apply','pick','restore','module-load','edit','active-save'}:
             paths.append(self.config.parent / ('.' + self.config.name + '.blastoff.lock'))
-        return locks(paths)
+        with locks(paths):
+            if self._active is not None:
+                self._active.check()
+                if self.args.command in {'apply','pick','restore','module-load','edit'}:
+                    self.check_active()
+            yield
 
 def parser():
     return cli_module().parser(VERSION)
@@ -657,7 +687,7 @@ def run(argv, *, parsed_args=None):
     if cmd == 'completion':
         print((Path(__file__).resolve().parent.parent / 'completions' / ('blastoff.' + args.shell)).read_text(), end=''); return 0
     app = App(args)
-    app.diagnostic('Storage: '+str(app.root)+'; active config: '+str(app.config))
+    app.diagnostic('Storage: '+str(app.root)+'; active config: '+str(app.configured_config))
     if cmd == 'doctor':
         app.doctor(); return 0
     if cmd == 'list' or (cmd == 'theme' and args.action == 'list'):

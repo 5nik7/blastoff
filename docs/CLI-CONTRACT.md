@@ -1,4 +1,4 @@
-# Blastoff command contract — 0.1.11 review build
+# Blastoff command contract — 0.1.12 review build
 
 ## Paths
 
@@ -192,15 +192,17 @@ and refuses JSON, except dry-run which only reports target/editor/actions.
 Back up the original before launching. Edit a private `.blastoff-edit-*` directory
 beside the active path. Reopen the editor's result to support atomic-save editors;
 validate bounded regular UTF-8 TOML and the unchanged original before publishing.
-Never pass an active symlink to the editor: --replace-link authorizes conversion,
-records its old link and leaves its target alone. A config pathname inside the
+The editor receives a private copy beside the physical target. Normal publication
+preserves the active link; --replace-link explicitly authorizes conversion, records
+its old link and leaves its target alone. A config pathname inside the
 stored theme/module directory is refused. Missing config starts empty; invalid
 original content may be backed up for repair, but only valid output is published.
 Failed, invalid, interrupted or concurrently conflicted edits remain at an exact
 reported recovery path. Editors may leave additional artifacts, which are retained
 rather than recursively removed. See [recovery](RECOVERY.md).
 
-State is `<storage>/state/provenance/<normalized-active-path-hash>.json`, version 1.
+State is `<storage>/state/provenance/<normalized-physical-target-hash>.json`, version 1.
+Explicit --replace-link uses the configured pathname instead.
 It records the pathname, last-loaded kind/name/source digest, local source
 fingerprint, separate local save destination/baseline, and last-confirmed active
 digest/fingerprint. It is atomically written only after content succeeds.
@@ -245,7 +247,10 @@ Apply copies validated bytes into a regular config; it never links or edits the
 stored source. Changed active writes are backed up; identical regular content
 needs no content backup. Forced stored replacements and stored deletions are
 backed up. Theme/module deletion refuses active-file identity, including hardlinks.
-Active leaf conversion needs --replace-link; linked parents remain refused.
+Normal active-file symlinks are preserved, including relative/chained links to
+regular files. Link retargeting, missing targets, loops, special objects, library
+targets and unsupported reparse types are refused. Active leaf conversion needs
+--replace-link; linked parents remain refused.
 
 Backups contain UTC/random IDs, SHA-256, original source and optional link text.
 No automatic pruning. Restore accepts config backups only and restores regular
@@ -253,7 +258,7 @@ content, not a link relationship. Recover stored themes with theme import of an
 inspected backup; inspect/validate module backup bytes before copying them.
 
 Canonical storage locks serialize writers; active writes and active-save/edit
-also lock beside the config. Stale locks are never broken automatically. Expected
+also lock beside the physical config target, so aliases share a lock. Stale locks are never broken automatically. Expected
 fingerprints detect cooperating/concurrent changes. Per-file atomic writes and
 pending provenance markers are not multi-file crash transactions or protection
 against a malicious final-window path swap. Files are fsynced before replacement;
@@ -440,3 +445,19 @@ Human inspection reads only the record, active config and at most one tracked
 local source, with stat snapshots around inspection; no writes, extra subprocesses
 or library-wide content hashing. Existing preset name discovery remains unchanged.
 JSON skips this annotation entirely and retains its existing schema and diagnostics.
+
+### Default-path and alias compatibility (0.1.12)
+
+`~/.config/starship.toml` remains the default regardless of XDG_CONFIG_HOME. Explicit
+STARSHIP_CONFIG overrides remain supported. `current` and `doctor` retain the
+configured `config` field and add `resolved_config` (null when doctor cannot safely
+resolve it). Human views and active-write dry runs identify the physical target.
+Read-only commands do not create tracking or migrate records.
+
+Canonical target history is preferred. Compatible legacy configured-path history
+is readable when canonical history is absent; conflicting, invalid or pending
+records do not authorize implicit save. Successful explicit operations preserve
+superseded alias records/markers under unique `.legacy-*` names before completing
+canonical tracking. Interrupted publication retains the pending marker. Backups
+include configured/physical paths and the observed link text as evidence; restore
+never uses recorded paths to recreate or retarget a link.

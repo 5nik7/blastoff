@@ -1,4 +1,4 @@
-# PowerShell 7+ frontend and CurrentUser lifecycle — 0.1.11
+# PowerShell 7+ frontend and CurrentUser lifecycle — 0.1.12
 
 The module uses the same Python 3.11+ core as Bash. Native Windows needs neither
 Bash nor WSL. Implementation is shared; native Windows, Linux PowerShell, WSL and
@@ -74,7 +74,7 @@ unambiguous CurrentUser powershell.config.json PSModulePath is honored; ambiguou
 custom paths require -ModuleRoot. The first writable PSModulePath entry is never
 chosen arbitrarily. Unsafe linked/reparse write parents remain refused.
 
-The self-contained module is `<ModuleRoot>/blastoff/0.1.11/blastoff.psd1`, with the
+The self-contained module is `<ModuleRoot>/blastoff/0.1.12/blastoff.psd1`, with the
 nested module, Python runtime, preview/lifecycle helpers, artwork, completions,
 manual and docs beside it. Ownership is `<ModuleRoot>/blastoff/.blastoff/install.json`
 (format 3); recovery profile backups remain in `.blastoff/profile-backups`.

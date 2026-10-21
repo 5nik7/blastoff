@@ -61,7 +61,7 @@ Bash with a Windows Python runtime is refused before destination planning.
 Use Linux Python inside WSL; no Windows/WSL path translation is performed.
 Other POSIX labels preserve existing defaults without certifying new native hosts.
 
-The payload is `<prefix>/share/blastoff/versions/0.1.11`. On POSIX the launcher
+The payload is `<prefix>/share/blastoff/versions/0.1.12`. On POSIX the launcher
 uses the discovered absolute Bash path, avoiding Termux's absent `/usr/bin/env`.
 `BLASTOFF_PYTHON` selects an interpreter executable, not a command with flags.
 Missing Python reports an actionable diagnostic and status 3 in both frontends.
@@ -132,7 +132,7 @@ If the source is unavailable, use the installed public wrapper, for example on
 Termux with the default prefix:
 
 ```sh
-bash "$PREFIX/share/blastoff/versions/0.1.11/uninstall.sh" --prefix "$PREFIX" --dry-run
+bash "$PREFIX/share/blastoff/versions/0.1.12/uninstall.sh" --prefix "$PREFIX" --dry-run
 # Remove --dry-run only when removal is wanted.
 ```
 
@@ -182,7 +182,7 @@ Native PowerShell 7+ (no Bash/WSL needed):
 ```
 
 For manual activation, substitute your actual absolute prefix below. PowerShell
-can import `<prefix>/share/blastoff/versions/0.1.11/powershell/blastoff.psd1`
+can import `<prefix>/share/blastoff/versions/0.1.12/powershell/blastoff.psd1`
 explicitly. Bash can source `<prefix>/share/bash-completion/completions/blastoff`;
 Fish can source `<prefix>/share/fish/vendor_completions.d/blastoff.fish`.
 For Zsh, add `<prefix>/share/zsh/site-functions` to `fpath` before your existing
@@ -214,7 +214,7 @@ No automatic migration is needed: old config backups remain readable with unknow
 origin when they lack provenance. Bat and fzf remain optional; no dependencies are
 installed. -v/--verbose shows detailed lifecycle actions on stderr.
 
-Rehearse 0.1.10 to 0.1.11 upgrades in temporary prefixes using the actual old source,
+Rehearse 0.1.11 to 0.1.12 upgrades in temporary prefixes using the actual old source,
 then verify helper resolution, completions, manual/version and retained data after
 uninstall. Final checksums/packages follow final code and documentation edits.
 Native Windows and human visual checks remain separate gates in STATUS.md.
